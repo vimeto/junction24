@@ -254,6 +254,53 @@ export default function ChatWindow() {
               <Button
                 variant="outline"
                 size="icon"
+                // onClick={async () => {
+                //   const imageUrl = "https://picsum.photos/200/300";
+                  
+                //   try {
+                //     // Add user message with image
+                //     const userMessage: Message = {
+                //       image: imageUrl,
+                //       sender: "user"
+                //     };
+                //     setMessages(prev => [...prev, userMessage]);
+
+                //     // Call the API route
+                //     const response = await fetch("/api/chat", {
+                //       method: "POST",
+                //       headers: {
+                //         "Content-Type": "application/json",
+                //       },
+                //       body: JSON.stringify({
+                //         imageUrl: imageUrl,
+                //         text: "Please analyze this image and provide technical feedback."
+                //       }),
+                //     });
+
+                //     if (!response.ok) {
+                //       const errorText = await response.text();
+                //       throw new Error(errorText || "Failed to get response");
+                //     }
+
+                //     const data = await response.json();
+
+                //     // Add AI response
+                //     const aiMessage: Message = {
+                //       text: data.response,
+                //       sender: "ai"
+                //     };
+                //     setMessages(prev => [...prev, aiMessage]);
+
+                //   } catch (error) {
+                //     console.error("Error:", error);
+                //     const errorMessage: Message = {
+                //       text: "Sorry, I encountered an error. Please try again.",
+                //       sender: "ai"
+                //     };
+                //     setMessages(prev => [...prev, errorMessage]);
+                //   }
+                // }}
+                // className="border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]"
                 onClick={() => setShowCamera(!showCamera)}
                 className={`border-gray-700 ${
                   showCamera 

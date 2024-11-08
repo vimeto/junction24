@@ -4,13 +4,26 @@ import { z } from "zod";
 import OpenAI from "openai";
 
 // Initialize OpenAI client
-const openai  = new OpenAI({
+const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+// Updated schema to handle optional text and image
 const messageSchema = z.object({
-  text: z.string().min(1),
+  text: z.string().optional(),
+  imageUrl: z.string().optional(),
+}).refine(data => data.text || data.imageUrl, {
+  message: "Either text or imageUrl must be provided"
 });
+
+// Add this type at the top of the file
+type ChatContent = 
+  | string 
+  | Array<{
+      type: "text" | "image_url";
+      text?: string;
+      image_url?: { url: string };
+    }>;
 
 export async function POST(req: Request) {
   try {
@@ -22,21 +35,36 @@ export async function POST(req: Request) {
 
     // Validate request body
     const body = await req.json();
-    const { text } = messageSchema.parse(body);
+    const { text, imageUrl } = messageSchema.parse(body);
 
-    // Call OpenAI API
+    // Construct messages array based on what's provided
+    const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
+      {
+        role: "system",
+        content: "You are a helpful assistant that helps users with technical maintenance tasks."
+      }
+    ];
+
+    if (imageUrl) {
+      messages.push({
+        role: "user",
+        content: [
+          { type: "image_url", image_url: { url: imageUrl } },
+          { type: "text", text: text || "Please analyze this image and provide technical feedback." }
+        ]
+      });
+    } else if (text) {
+      messages.push({
+        role: "user",
+        content: text
+      });
+    }
+
+    // Call OpenAI API with appropriate model
     const completion = await openai.chat.completions.create({
-      messages: [
-        {
-          role: "system",
-          content: "You are a helpful assistant that helps users with technical maintenance tasks."
-        },
-        {
-          role: "user",
-          content: text
-        }
-      ],
-      model: "gpt-3.5-turbo",
+      messages,
+      model: "gpt-4o",
+      max_tokens: 500,
     });
 
     // Extract the AI response
@@ -47,7 +75,7 @@ export async function POST(req: Request) {
     }
 
     return NextResponse.json({
-      message: "Success",
+      success: true,
       response: aiResponse
     });
 
