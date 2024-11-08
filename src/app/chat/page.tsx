@@ -189,15 +189,6 @@ export default function ChatWindow() {
       text: "Welcome to Tech Maintenance Support. How can I assist you today?",
       sender: "ai",
     },
-    {
-      text: "Hi, my computer is running very slowly. Can you help?",
-      sender: "user",
-    },
-    {
-      text: "I understand you're experiencing slow performance. Let's start by checking a few things. First, how long has this been happening?",
-      sender: "ai",
-    },
-    { text: "It's been slow for about a week now.", sender: "user" },
   ]);
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
