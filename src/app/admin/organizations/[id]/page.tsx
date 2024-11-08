@@ -1,6 +1,6 @@
 import { notFound } from "next/navigation";
 import { OrganizationTabs } from "./_components/organization-tabs";
-import { getUserOrganization } from "~/server/queries/organizations";
+import { getUserOrganization, getLocationItems } from "~/server/queries/organizations";
 
 interface PageProps {
   params: Promise<{ id: string }>;
@@ -13,7 +13,11 @@ export default async function OrganizationPage({
   const organizationId = parseInt(resolvedParams.id);
   if (isNaN(organizationId)) notFound();
 
-  const organization = await getUserOrganization(organizationId);
+  const [organization, locationItems] = await Promise.all([
+    getUserOrganization(organizationId),
+    getLocationItems(organizationId),
+  ]);
+
   if (!organization) notFound();
 
   return (
@@ -23,7 +27,10 @@ export default async function OrganizationPage({
         <p className="text-muted-foreground">Organization Management</p>
       </div>
 
-      <OrganizationTabs organization={organization} />
+      <OrganizationTabs
+        organization={organization}
+        locationItems={locationItems}
+      />
     </div>
   );
 }

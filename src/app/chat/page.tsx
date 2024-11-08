@@ -19,9 +19,10 @@ import {
 } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { Mic, MicOff, Send, Camera, Keyboard } from "lucide-react";
+import { Mic, MicOff, Send, Camera, Keyboard, X } from "lucide-react";
 import useSpeechRecognition from "./_hooks/useSpeechRecognition";
 import useAudioVisualization from "./_hooks/useAudioVisualization";
+import { InlineCamera } from "./camera";
 
 interface Message {
   text?: string;
@@ -68,6 +69,7 @@ export default function ChatWindow() {
   } = useAudioVisualization();
   const [isListening, setIsListening] = useState(true); // Start in audio mode by default
   const [inputText, setInputText] = useState("");
+  const [showCamera, setShowCamera] = useState(false);
 
   useEffect(() => {
     if (isListening) {
@@ -198,55 +200,65 @@ export default function ChatWindow() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={async () => {
-                  const imageUrl = "https://picsum.photos/200/300";
+                // onClick={async () => {
+                //   const imageUrl = "https://picsum.photos/200/300";
                   
-                  try {
-                    // Add user message with image
-                    const userMessage: Message = {
-                      image: imageUrl,
-                      sender: "user"
-                    };
-                    setMessages(prev => [...prev, userMessage]);
+                //   try {
+                //     // Add user message with image
+                //     const userMessage: Message = {
+                //       image: imageUrl,
+                //       sender: "user"
+                //     };
+                //     setMessages(prev => [...prev, userMessage]);
 
-                    // Call the API route
-                    const response = await fetch("/api/chat", {
-                      method: "POST",
-                      headers: {
-                        "Content-Type": "application/json",
-                      },
-                      body: JSON.stringify({
-                        imageUrl: imageUrl,
-                        text: "Please analyze this image and provide technical feedback."
-                      }),
-                    });
+                //     // Call the API route
+                //     const response = await fetch("/api/chat", {
+                //       method: "POST",
+                //       headers: {
+                //         "Content-Type": "application/json",
+                //       },
+                //       body: JSON.stringify({
+                //         imageUrl: imageUrl,
+                //         text: "Please analyze this image and provide technical feedback."
+                //       }),
+                //     });
 
-                    if (!response.ok) {
-                      const errorText = await response.text();
-                      throw new Error(errorText || "Failed to get response");
-                    }
+                //     if (!response.ok) {
+                //       const errorText = await response.text();
+                //       throw new Error(errorText || "Failed to get response");
+                //     }
 
-                    const data = await response.json();
+                //     const data = await response.json();
 
-                    // Add AI response
-                    const aiMessage: Message = {
-                      text: data.response,
-                      sender: "ai"
-                    };
-                    setMessages(prev => [...prev, aiMessage]);
+                //     // Add AI response
+                //     const aiMessage: Message = {
+                //       text: data.response,
+                //       sender: "ai"
+                //     };
+                //     setMessages(prev => [...prev, aiMessage]);
 
-                  } catch (error) {
-                    console.error("Error:", error);
-                    const errorMessage: Message = {
-                      text: "Sorry, I encountered an error. Please try again.",
-                      sender: "ai"
-                    };
-                    setMessages(prev => [...prev, errorMessage]);
-                  }
-                }}
-                className="border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]"
+                //   } catch (error) {
+                //     console.error("Error:", error);
+                //     const errorMessage: Message = {
+                //       text: "Sorry, I encountered an error. Please try again.",
+                //       sender: "ai"
+                //     };
+                //     setMessages(prev => [...prev, errorMessage]);
+                //   }
+                // }}
+                // className="border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]"
+                onClick={() => setShowCamera(!showCamera)}
+                className={`border-gray-700 ${
+                  showCamera 
+                    ? "bg-red-500/10 hover:bg-red-500/20 text-red-500" 
+                    : "bg-[#2a2a2c] hover:bg-[#323234]"
+                }`}
               >
-                <Camera className="h-4 w-4" />
+                {showCamera ? (
+                  <X className="h-4 w-4" />
+                ) : (
+                  <Camera className="h-4 w-4" />
+                )}
               </Button>
               <Button
                 variant="outline"
@@ -321,6 +333,11 @@ export default function ChatWindow() {
                 </Button>
               )}
             </div>
+            {showCamera && (
+              <div className="absolute bottom-full left-0 right-0">
+                <InlineCamera onClose={() => setShowCamera(false)} />
+              </div>
+            )}
           </CardFooter>
         </Card>
       </div>
