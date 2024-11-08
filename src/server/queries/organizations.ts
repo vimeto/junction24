@@ -66,3 +66,68 @@ export async function getUserOrganizations(): Promise<OrganizationSummary[]> {
 
   return summaries;
 }
+
+export type OrganizationDetails = {
+  id: number;
+  name: string;
+  totalItems: number;
+  totalLocations: number;
+  totalAudits: number;
+  locations: {
+    id: number;
+    name: string;
+    latitude: string | null;
+    longitude: string | null;
+  }[];
+};
+
+export async function getUserOrganization(id: number): Promise<OrganizationDetails | null> {
+  const user = await auth();
+  if (!user.userId) throw new Error("Unauthorized");
+
+  // Check if user has access to this organization
+  const role = await db.query.organizationRoles.findFirst({
+    where: and(
+      eq(organizationRoles.userId, user.userId),
+      eq(organizationRoles.organizationId, id)
+    ),
+  });
+
+  // If user is not admin and has no role in this org, return null
+  if (role?.role !== "admin" && !role) return null;
+
+  const org = await db.query.organizations.findFirst({
+    where: eq(organizations.id, id),
+    with: {
+      locations: true,
+    },
+  });
+
+  if (!org) return null;
+
+  // Get summary counts
+  const [itemCount] = await db
+    .select({ count: itemAudits.id })
+    .from(itemAudits)
+    .innerJoin(locations, eq(itemAudits.locationId, locations.id))
+    .where(eq(locations.organizationId, id));
+
+  const [auditCount] = await db
+    .select({ count: audits.id })
+    .from(audits)
+    .where(eq(audits.organizationId, id));
+
+  return {
+    id: org.id,
+    name: org.name ?? "Unnamed Organization",
+    totalItems: Number(itemCount?.count ?? 0),
+    totalLocations: org.locations.length,
+    totalAudits: Number(auditCount?.count ?? 0),
+    locations: org.locations.map(loc => ({
+      id: loc.id,
+      name: loc.name ?? "Unnamed Location",
+      latitude: loc.latitude,
+      longitude: loc.longitude,
+    })),
+  };
+}
