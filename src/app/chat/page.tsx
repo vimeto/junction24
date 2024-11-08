@@ -20,152 +20,8 @@ import {
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Mic, MicOff, Send, Camera, Keyboard } from "lucide-react";
-
-const useSpeechRecognition = () => {
-  const [transcript, setTranscript] = useState("");
-  const recognitionRef = useRef<
-    Window["SpeechRecognition"] | Window["webkitSpeechRecognition"] | null
-  >(null);
-
-  useEffect(() => {
-    if (
-      (typeof window !== "undefined" && "SpeechRecognition" in window) ||
-      "webkitSpeechRecognition" in window
-    ) {
-      const SpeechRecognition =
-        (window as any).SpeechRecognition ||
-        (window as any).webkitSpeechRecognition;
-      recognitionRef.current = new SpeechRecognition();
-      if (recognitionRef.current) {
-        recognitionRef.current.continuous = true;
-        recognitionRef.current.interimResults = true;
-      }
-
-      recognitionRef.current.onresult = (event: any) => {
-        const current: number = event.resultIndex;
-        const transcript: string = event.results[current][0].transcript;
-        setTranscript(transcript);
-      };
-    }
-
-    return () => {
-      if (recognitionRef.current) {
-        recognitionRef.current.stop();
-      }
-    };
-  }, []);
-
-  const startListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.start();
-    }
-  };
-
-  const stopListening = () => {
-    if (recognitionRef.current) {
-      recognitionRef.current.stop();
-    }
-  };
-
-  return { transcript, startListening, stopListening };
-};
-
-const useAudioVisualization = () => {
-  const [visualizationData, setVisualizationData] = useState<number[]>(
-    Array(50).fill(0),
-  );
-  const [isMuted, setIsMuted] = useState(true); // Start with mic muted
-  const audioContextRef = useRef<AudioContext | null>(null);
-  const analyserRef = useRef<AnalyserNode | null>(null);
-  const dataArrayRef = useRef<Uint8Array | null>(null);
-  const animationRef = useRef<number | null>(null);
-  const mediaStreamRef = useRef<MediaStream | null>(null);
-
-  const startVisualization = async () => {
-    try {
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      mediaStreamRef.current = stream;
-
-      const audioContext = new AudioContext();
-      const analyser = audioContext.createAnalyser();
-      analyser.fftSize = 128;
-      const bufferLength = analyser.frequencyBinCount;
-      const dataArray = new Uint8Array(bufferLength);
-
-      const source = audioContext.createMediaStreamSource(stream);
-      source.connect(analyser);
-
-      audioContextRef.current = audioContext;
-      analyserRef.current = analyser;
-      dataArrayRef.current = dataArray;
-
-      const visualize = () => {
-        if (analyserRef.current && dataArrayRef.current) {
-          analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-
-          // Display blank line if muted, otherwise show audio levels
-          const newData = isMuted
-            ? Array(50).fill(0)
-            : Array.from(dataArrayRef.current).map((value) =>
-                value > 0 ? value : 0,
-              );
-
-          setVisualizationData(newData);
-        }
-
-        animationRef.current = requestAnimationFrame(visualize);
-      };
-
-      visualize();
-    } catch (err) {
-      console.error("Error accessing the microphone:", err);
-    }
-  };
-
-  const stopVisualization = () => {
-    if (audioContextRef.current) {
-      audioContextRef.current.close();
-      audioContextRef.current = null;
-    }
-
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-
-    if (mediaStreamRef.current) {
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
-
-    setVisualizationData(Array(50).fill(0)); // Reset to silent line
-  };
-
-  const toggleMute = () => {
-    if (isMuted) {
-      startVisualization(); // Start mic when unmuting
-    } else if (mediaStreamRef.current) {
-      // Mute mic by stopping the media stream tracks
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
-    }
-    setIsMuted((prev) => !prev);
-  };
-
-  return {
-    visualizationData,
-    startVisualization,
-    stopVisualization,
-    toggleMute,
-    isMuted,
-    setIsMuted,
-  };
-};
-
-const uploadImage = async (file: File): Promise<string> => {
-  console.log("Uploading image:", file);
-  return URL.createObjectURL(file);
-};
+import useSpeechRecognition from "./_hooks/useSpeechRecognition";
+import useAudioVisualization from "./_hooks/useAudioVisualization";
 
 interface Message {
   text?: string;
@@ -275,24 +131,13 @@ export default function ChatWindow() {
         // Add error message
         setMessages((prevMessages) => [
           ...prevMessages,
-          { 
-            text: "Sorry, I encountered an error. Please try again.", 
-            sender: "ai" 
+          {
+            text: "Sorry, I encountered an error. Please try again.",
+            sender: "ai",
           },
         ]);
       }
     }
-  };
-
-  const toggleListening = () => {
-    if (isListening) {
-      stopListening();
-      stopVisualization();
-    } else {
-      startListening();
-      startVisualization();
-    }
-    setIsListening(!isListening);
   };
 
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
@@ -324,7 +169,7 @@ export default function ChatWindow() {
                         </AvatarFallback>
                         <AvatarImage
                           src={
-                            message.sender === "user" 
+                            message.sender === "user"
                               ? "https://api.dicebear.com/7.x/avataaars/svg?seed=user"
                               : "https://api.dicebear.com/7.x/bottts/svg?seed=ai"
                           }
@@ -371,7 +216,7 @@ export default function ChatWindow() {
                     toggleMute(); // Switch back to audio mode
                   }
                 }}
-                className={`${isMuted ? "text-red-900 hover:text-red-800" : "bg-[#2a2a2c] hover:bg-[#323234]"} border-gray-700`}
+                className={`border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]`}
               >
                 {isMuted ? (
                   <MicOff className="h-4 w-4" />
@@ -427,7 +272,7 @@ export default function ChatWindow() {
               {!isListening && (
                 <Button
                   onClick={handleSend}
-                  className="bg-[#3a3a3c] hover:bg-[#454547]"
+                  className="bg-[#3a3a3c] text-white hover:bg-[#454547]"
                 >
                   <Send className="h-4 w-4" />
                 </Button>
