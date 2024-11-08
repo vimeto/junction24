@@ -21,6 +21,7 @@ export default async function AdminPage() {
           organizations.map((org) => (
             <OrganizationSummaryCard
               key={org.id}
+              id={org.id}
               name={org.name}
               totalItems={org.totalItems}
               totalLocations={org.totalLocations}

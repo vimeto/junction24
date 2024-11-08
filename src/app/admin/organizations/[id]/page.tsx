@@ -2,12 +2,15 @@ import { notFound } from "next/navigation";
 import { OrganizationTabs } from "./_components/organization-tabs";
 import { getUserOrganization } from "~/server/queries/organizations";
 
+interface PageProps {
+  params: Promise<{ id: string }>;
+}
+
 export default async function OrganizationPage({
   params,
-}: {
-  params: { id: string };
-}) {
-  const organizationId = parseInt(params.id);
+}: PageProps) {
+  const resolvedParams = await params;
+  const organizationId = parseInt(resolvedParams.id);
   if (isNaN(organizationId)) notFound();
 
   const organization = await getUserOrganization(organizationId);
