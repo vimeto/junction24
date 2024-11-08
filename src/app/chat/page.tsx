@@ -216,6 +216,7 @@ export default function ChatWindow() {
 
   const handleSend = async () => {
     if (inputText.trim()) {
+      // Add user message immediately
       const newMessage = { text: inputText, sender: "user" };
       setMessages([
         ...messages,
@@ -227,11 +228,38 @@ export default function ChatWindow() {
       ]);
       setInputText("");
 
-      const response = await sendMessage(inputText);
-      setMessages((prevMessages) => [
-        ...prevMessages,
-        { text: response, sender: "ai" },
-      ]);
+      try {
+        // Call the API route
+        const response = await fetch("/api/chat", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ text: inputText }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to get response");
+        }
+
+        const data = await response.json();
+
+        // Add AI response
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { text: data.response, sender: "ai" },
+        ]);
+      } catch (error) {
+        console.error("Error sending message:", error);
+        // Add error message
+        setMessages((prevMessages) => [
+          ...prevMessages,
+          { 
+            text: "Sorry, I encountered an error. Please try again.", 
+            sender: "ai" 
+          },
+        ]);
+      }
     }
   };
 
@@ -298,9 +326,9 @@ export default function ChatWindow() {
                         </AvatarFallback>
                         <AvatarImage
                           src={
-                            message.sender === "user"
-                              ? "/placeholder-user.jpg"
-                              : "/placeholder-ai.jpg"
+                            message.sender === "user" 
+                              ? "https://api.dicebear.com/7.x/avataaars/svg?seed=user"
+                              : "https://api.dicebear.com/7.x/bottts/svg?seed=ai"
                           }
                         />
                       </Avatar>
