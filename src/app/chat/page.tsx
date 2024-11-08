@@ -78,21 +78,72 @@ const useSpeechRecognition = () => {
 };
 
 const useAudioVisualization = () => {
-  const [visualizationData, setVisualizationData] = useState<number[]>([]);
+  const [visualizationData, setVisualizationData] = useState<number[]>(
+    Array(50).fill(0),
+  );
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const dataArrayRef = useRef<Uint8Array | null>(null);
+  const animationRef = useRef<number | null>(null);
+  const mediaStreamRef = useRef<MediaStream | null>(null);
 
-  const startVisualization = () => {
-    const interval = setInterval(() => {
-      const newData = Array(50)
-        .fill(0)
-        .map(() => Math.random() * 100);
-      setVisualizationData(newData);
-    }, 50);
+  const startVisualization = async () => {
+    try {
+      // Request microphone access
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      mediaStreamRef.current = stream;
 
-    return () => clearInterval(interval);
+      const audioContext = new AudioContext();
+      const analyser = audioContext.createAnalyser();
+      analyser.fftSize = 128;
+      const bufferLength = analyser.frequencyBinCount;
+      const dataArray = new Uint8Array(bufferLength);
+
+      const source = audioContext.createMediaStreamSource(stream);
+      source.connect(analyser);
+
+      audioContextRef.current = audioContext;
+      analyserRef.current = analyser;
+      dataArrayRef.current = dataArray;
+
+      // Visualization loop
+      const visualize = () => {
+        if (analyserRef.current && dataArrayRef.current) {
+          analyserRef.current.getByteFrequencyData(dataArrayRef.current);
+
+          const newData = Array.from(dataArrayRef.current).map((value) =>
+            value > 0 ? value : 0,
+          );
+          setVisualizationData(newData);
+        }
+
+        animationRef.current = requestAnimationFrame(visualize);
+      };
+
+      visualize();
+    } catch (err) {
+      console.error("Error accessing the microphone:", err);
+    }
   };
 
   const stopVisualization = () => {
-    setVisualizationData([]);
+    if (audioContextRef.current) {
+      audioContextRef.current.close();
+      audioContextRef.current = null;
+    }
+
+    if (animationRef.current) {
+      cancelAnimationFrame(animationRef.current);
+      animationRef.current = null;
+    }
+
+    // Stop the microphone stream
+    if (mediaStreamRef.current) {
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+
+    setVisualizationData(Array(50).fill(0)); // Reset to silent line
   };
 
   return { visualizationData, startVisualization, stopVisualization };
@@ -151,7 +202,6 @@ export default function ChatWindow() {
   const [inputText, setInputText] = useState("");
   const [isListening, setIsListening] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
-  const [currentTime, setCurrentTime] = useState("");
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { transcript, startListening, stopListening } = useSpeechRecognition();
@@ -163,15 +213,6 @@ export default function ChatWindow() {
       setInputText(transcript);
     }
   }, [transcript]);
-
-  useEffect(() => {
-    const timer = setInterval(() => {
-      const now = new Date();
-      setCurrentTime(now.toLocaleTimeString());
-    }, 1000);
-
-    return () => clearInterval(timer);
-  }, []);
 
   const handleSend = async () => {
     if (inputText.trim()) {
@@ -228,140 +269,139 @@ export default function ChatWindow() {
     }
   };
 
-  return (
-    <div className="flex min-h-screen items-center justify-center bg-[#0a0a0b] p-4">
-      <Card className="flex h-[600px] w-full max-w-md flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
-        <CardHeader className="border-b border-gray-800">
-          <CardTitle className="flex items-center justify-between text-lg font-semibold">
-            <span>Tech Support</span>
-          </CardTitle>
-        </CardHeader>
-        <CardContent className="flex-1 p-0">
-          <ScrollArea className="h-full">
-            <div className="space-y-4 p-4">
-              {messages.map((message, index) => (
-                <div
-                  key={index}
-                  className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
-                >
-                  <div
-                    className={`flex items-end space-x-2 ${message.sender === "user" ? "flex-row-reverse space-x-reverse" : "flex-row"}`}
-                  >
-                    <Avatar className="h-8 w-8">
-                      <AvatarFallback>
-                        {message.sender === "user" ? "U" : "A"}
-                      </AvatarFallback>
-                      <AvatarImage
-                        src={
-                          message.sender === "user"
-                            ? "/placeholder-user.jpg"
-                            : "/placeholder-ai.jpg"
-                        }
-                      />
-                    </Avatar>
-                    <div
-                      className={`max-w-[80%] rounded-lg p-3 ${message.sender === "user" ? "bg-[#2a2a2c]" : "bg-[#323234]"}`}
-                    >
-                      {message.text && <p>{message.text}</p>}
-                      {message.image && (
-                        <img
-                          src={message.image}
-                          alt="Uploaded"
-                          className="max-w-full rounded"
-                        />
-                      )}
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
-          </ScrollArea>
-        </CardContent>
-        <CardFooter className="border-t border-gray-800 p-4">
-          <div className="flex w-full items-center space-x-2">
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() =>
-                fileInputRef.current && fileInputRef.current.click()
-              }
-              className="border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]"
-            >
-              <Camera className="h-4 w-4" />
-            </Button>
-            <input
-              type="file"
-              ref={fileInputRef}
-              className="hidden"
-              accept="image/*"
-              capture="environment"
-              onChange={handleFileUpload}
-            />
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={() =>
-                fileInputRef.current && fileInputRef.current.click()
-              }
-              className="border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]"
-            >
-              <ImageIcon className="h-4 w-4" />
-            </Button>
+  const scrollAreaRef = useRef<HTMLDivElement | null>(null);
 
-            {isListening ? (
-              <div className="flex h-10 flex-1 items-center overflow-hidden rounded-md bg-[#2a2a2c] px-2">
-                {visualizationData.map((value, index) => (
+  useEffect(() => {
+    if (scrollAreaRef.current) {
+      scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
+    }
+  }, [messages]);
+
+  return (
+    <>
+      <div className="flex items-center justify-center">
+        <Card className="z-0 flex min-h-screen w-full max-w-md flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
+          <CardContent className="flex-1 p-0">
+            <ScrollArea className="h-full" ref={scrollAreaRef}>
+              <div className="space-y-4 p-4">
+                {messages.map((message, index) => (
                   <div
                     key={index}
-                    className="mx-px w-0.5 bg-gray-400"
-                    style={{ height: `${value}%` }}
-                  ></div>
+                    className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                  >
+                    <div
+                      className={`flex items-end space-x-2 ${message.sender === "user" ? "flex-row-reverse space-x-reverse" : "flex-row"}`}
+                    >
+                      <Avatar className="h-8 w-8">
+                        <AvatarFallback>
+                          {message.sender === "user" ? "U" : "A"}
+                        </AvatarFallback>
+                        <AvatarImage
+                          src={
+                            message.sender === "user"
+                              ? "/placeholder-user.jpg"
+                              : "/placeholder-ai.jpg"
+                          }
+                        />
+                      </Avatar>
+                      <div
+                        className={`max-w-[80%] rounded-lg p-3 ${message.sender === "user" ? "bg-[#2a2a2c]" : "bg-[#323234]"}`}
+                      >
+                        {message.text && <p>{message.text}</p>}
+                        {message.image && (
+                          <img
+                            src={message.image}
+                            alt="Uploaded"
+                            className="max-w-full rounded"
+                          />
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
-            ) : (
-              <Input
-                placeholder="Type a message..."
-                value={inputText}
-                onChange={(e) => setInputText(e.target.value)}
-                className="flex-1 border-gray-700 bg-[#2a2a2c] text-gray-200 placeholder-gray-500"
-              />
-            )}
-
-            {isListening && (
+            </ScrollArea>
+          </CardContent>
+          <CardFooter className="sticky bottom-0 z-10 w-full border-gray-800 bg-[#1a1a1c] p-4">
+            <div className="flex w-full items-center space-x-2">
               <Button
                 variant="outline"
                 size="icon"
-                onClick={() => setIsListening(false)}
+                onClick={() =>
+                  fileInputRef.current && fileInputRef.current.click()
+                }
                 className="border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]"
               >
-                <Keyboard className="h-4 w-4" />
+                <Camera className="h-4 w-4" />
               </Button>
-            )}
-
-            <Button
-              variant="outline"
-              size="icon"
-              onClick={isMuted ? toggleMute : toggleListening}
-              className={`${isMuted ? "bg-red-900 hover:bg-red-800" : "bg-[#2a2a2c] hover:bg-[#323234]"} border-gray-700`}
-            >
-              {isMuted ? (
-                <MicOff className="h-4 w-4" />
-              ) : (
-                <Mic className="h-4 w-4" />
-              )}
-            </Button>
-
-            {!isListening && (
               <Button
-                onClick={handleSend}
-                className="bg-[#3a3a3c] hover:bg-[#454547]"
+                variant="outline"
+                size="icon"
+                onClick={isMuted ? toggleMute : toggleListening}
+                className={`${isMuted ? "bg-red-900 hover:bg-red-800" : "bg-[#2a2a2c] hover:bg-[#323234]"} border-gray-700`}
               >
-                <Send className="h-4 w-4" />
+                {isMuted ? (
+                  <MicOff className="h-4 w-4" />
+                ) : (
+                  <Mic className="h-4 w-4" />
+                )}
               </Button>
-            )}
-          </div>
-        </CardFooter>
-      </Card>
-    </div>
+
+              {isListening ? (
+                <div className="flex h-10 flex-1 items-center overflow-hidden rounded-md bg-[#2a2a2c] px-2">
+                  {visualizationData.map((value, index) => (
+                    <div
+                      key={index}
+                      className="mx-px w-0.5 bg-gray-400"
+                      style={{ height: `${value / 2}%` }} // Adjust height scaling as needed
+                    ></div>
+                  ))}
+                </div>
+              ) : (
+                <Input
+                  placeholder="Type a message..."
+                  value={inputText}
+                  onChange={(e) => setInputText(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      if (e.shiftKey) {
+                        setInputText((prev) => prev + "\n"); // Shift+Enter for new line
+                      } else {
+                        e.preventDefault(); // Prevent default Enter behavior
+                        handleSend(); // Send message
+                      }
+                    }
+                  }}
+                  className="flex-1 border-gray-700 bg-[#2a2a2c] text-gray-200 placeholder-gray-500"
+                />
+              )}
+
+              {isListening && (
+                <Button
+                  variant="outline"
+                  size="icon"
+                  onClick={() => {
+                    setIsListening(false);
+                    setIsMuted(false);
+                  }}
+                  className="border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]"
+                >
+                  <Keyboard className="h-4 w-4" />
+                </Button>
+              )}
+
+              {!isListening && (
+                <Button
+                  onClick={handleSend}
+                  className="bg-[#3a3a3c] hover:bg-[#454547]"
+                >
+                  <Send className="h-4 w-4" />
+                </Button>
+              )}
+            </div>
+          </CardFooter>
+        </Card>
+      </div>
+    </>
   );
 }
