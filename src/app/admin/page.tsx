@@ -1,41 +1,35 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "~/components/ui/card"
+import { getUserOrganizations } from "~/server/queries/organizations"
+import { OrganizationSummaryCard } from "./_components/organization-summary-card"
+import { AdminButton } from "./_components/admin-button"
 
-export default function AdminPage() {
+export default async function AdminPage() {
+  const organizations = await getUserOrganizations();
+
   return (
     <div className="container mx-auto p-8">
-      <h1 className="text-4xl font-bold mb-8">Admin Dashboard</h1>
+      <div className="flex justify-between items-center mb-8">
+        <h1 className="text-4xl font-bold">Admin Dashboard</h1>
+        <AdminButton />
+      </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
-          <CardHeader>
-            <CardTitle>Total Users</CardTitle>
-            <CardDescription>Active users in the system</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">1,234</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Revenue</CardTitle>
-            <CardDescription>Total revenue this month</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">$45,678</p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Active Sessions</CardTitle>
-            <CardDescription>Current active users</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold">42</p>
-          </CardContent>
-        </Card>
+        {organizations.length === 0 ? (
+          <div className="col-span-full text-center text-lg text-muted-foreground">
+            You are not a member of any organization
+          </div>
+        ) : (
+          organizations.map((org) => (
+            <OrganizationSummaryCard
+              key={org.id}
+              id={org.id}
+              name={org.name}
+              totalItems={org.totalItems}
+              totalLocations={org.totalLocations}
+              totalAudits={org.totalAudits}
+            />
+          ))
+        )}
       </div>
     </div>
-  )
+  );
 }
