@@ -19,14 +19,7 @@ import {
 } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import {
-  Mic,
-  MicOff,
-  Send,
-  Camera,
-  Image as ImageIcon,
-  Keyboard,
-} from "lucide-react";
+import { Mic, MicOff, Send, Camera, Keyboard } from "lucide-react";
 
 const useSpeechRecognition = () => {
   const [transcript, setTranscript] = useState("");
@@ -81,6 +74,7 @@ const useAudioVisualization = () => {
   const [visualizationData, setVisualizationData] = useState<number[]>(
     Array(50).fill(0),
   );
+  const [isMuted, setIsMuted] = useState(true); // Start with mic muted
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const dataArrayRef = useRef<Uint8Array | null>(null);
@@ -89,7 +83,6 @@ const useAudioVisualization = () => {
 
   const startVisualization = async () => {
     try {
-      // Request microphone access
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = stream;
 
@@ -106,14 +99,17 @@ const useAudioVisualization = () => {
       analyserRef.current = analyser;
       dataArrayRef.current = dataArray;
 
-      // Visualization loop
       const visualize = () => {
         if (analyserRef.current && dataArrayRef.current) {
           analyserRef.current.getByteFrequencyData(dataArrayRef.current);
 
-          const newData = Array.from(dataArrayRef.current).map((value) =>
-            value > 0 ? value : 0,
-          );
+          // Display blank line if muted, otherwise show audio levels
+          const newData = isMuted
+            ? Array(50).fill(0)
+            : Array.from(dataArrayRef.current).map((value) =>
+                value > 0 ? value : 0,
+              );
+
           setVisualizationData(newData);
         }
 
@@ -137,7 +133,6 @@ const useAudioVisualization = () => {
       animationRef.current = null;
     }
 
-    // Stop the microphone stream
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
@@ -146,12 +141,26 @@ const useAudioVisualization = () => {
     setVisualizationData(Array(50).fill(0)); // Reset to silent line
   };
 
-  return { visualizationData, startVisualization, stopVisualization };
-};
+  const toggleMute = () => {
+    if (isMuted) {
+      startVisualization(); // Start mic when unmuting
+    } else if (mediaStreamRef.current) {
+      // Mute mic by stopping the media stream tracks
+      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
+      mediaStreamRef.current = null;
+    }
+    setIsMuted((prev) => !prev);
+  };
 
-interface UploadImageResponse {
-  imageUrl: string;
-}
+  return {
+    visualizationData,
+    startVisualization,
+    stopVisualization,
+    toggleMute,
+    isMuted,
+    setIsMuted,
+  };
+};
 
 const uploadImage = async (file: File): Promise<string> => {
   console.log("Uploading image:", file);
@@ -190,14 +199,35 @@ export default function ChatWindow() {
       sender: "ai",
     },
   ]);
-  const [inputText, setInputText] = useState("");
-  const [isListening, setIsListening] = useState(false);
-  const [isMuted, setIsMuted] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { transcript, startListening, stopListening } = useSpeechRecognition();
-  const { visualizationData, startVisualization, stopVisualization } =
-    useAudioVisualization();
+  const {
+    visualizationData,
+    startVisualization,
+    stopVisualization,
+    toggleMute,
+    isMuted,
+    setIsMuted,
+  } = useAudioVisualization();
+  const [isListening, setIsListening] = useState(true); // Start in audio mode by default
+  const [inputText, setInputText] = useState("");
+
+  useEffect(() => {
+    if (isListening) {
+      startVisualization();
+    } else {
+      stopVisualization();
+      setIsMuted(true); // Mute the mic automatically if switching to chat mode
+    }
+  }, [isListening]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setInputText(e.target.value);
+    if (isListening) {
+      setIsListening(false); // Switch to chat mode and mute mic on typing
+    }
+  };
 
   useEffect(() => {
     if (transcript) {
@@ -258,34 +288,11 @@ export default function ChatWindow() {
     if (isListening) {
       stopListening();
       stopVisualization();
-      setIsMuted(false);
     } else {
       startListening();
       startVisualization();
     }
     setIsListening(!isListening);
-  };
-
-  const toggleMute = () => {
-    setIsMuted(!isMuted);
-    if (!isMuted) {
-      stopListening();
-      stopVisualization();
-    }
-  };
-
-  interface FileUploadEvent extends React.ChangeEvent<HTMLInputElement> {}
-
-  const handleFileUpload = async (event: FileUploadEvent) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      const imageUrl = await uploadImage(file);
-      const newMessage: Message = { image: imageUrl, sender: "user" };
-      setMessages([
-        ...messages,
-        { ...newMessage, text: newMessage.text || "" },
-      ]);
-    }
   };
 
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
@@ -356,8 +363,15 @@ export default function ChatWindow() {
               <Button
                 variant="outline"
                 size="icon"
-                onClick={isMuted ? toggleMute : toggleListening}
-                className={`${isMuted ? "bg-red-900 hover:bg-red-800" : "bg-[#2a2a2c] hover:bg-[#323234]"} border-gray-700`}
+                onClick={() => {
+                  if (isListening) {
+                    toggleMute(); // Only toggle mute if in audio mode
+                  } else {
+                    setIsListening(true);
+                    toggleMute(); // Switch back to audio mode
+                  }
+                }}
+                className={`${isMuted ? "text-red-900 hover:text-red-800" : "bg-[#2a2a2c] hover:bg-[#323234]"} border-gray-700`}
               >
                 {isMuted ? (
                   <MicOff className="h-4 w-4" />
@@ -372,7 +386,7 @@ export default function ChatWindow() {
                     <div
                       key={index}
                       className="mx-px w-0.5 bg-gray-400"
-                      style={{ height: `${value / 2}%` }} // Adjust height scaling as needed
+                      style={{ height: `${value}%` }}
                     ></div>
                   ))}
                 </div>
@@ -380,14 +394,15 @@ export default function ChatWindow() {
                 <Input
                   placeholder="Type a message..."
                   value={inputText}
-                  onChange={(e) => setInputText(e.target.value)}
+                  onChange={handleInputChange}
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       if (e.shiftKey) {
                         setInputText((prev) => prev + "\n"); // Shift+Enter for new line
                       } else {
-                        e.preventDefault(); // Prevent default Enter behavior
-                        handleSend(); // Send message
+                        e.preventDefault();
+                        // Send message logic here
+                        setInputText("");
                       }
                     }
                   }}
@@ -401,7 +416,7 @@ export default function ChatWindow() {
                   size="icon"
                   onClick={() => {
                     setIsListening(false);
-                    setIsMuted(false);
+                    setIsMuted(true);
                   }}
                   className="border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]"
                 >
