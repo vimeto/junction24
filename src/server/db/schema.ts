@@ -69,7 +69,7 @@ export const itemAudits = createTable(
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     itemId: integer("item_id").references(() => items.id),
     locationId: integer("location_id").references(() => locations.id),
-    auditerId: integer("auditer_id"),
+    auditerId: varchar("auditer_id", { length: 256 }),
     auditId: integer("audit_id").references(() => audits.id),
     imageUrl: varchar("image_url", { length: 255 }),
     imageConfirmed: boolean("image_confirmed").default(false),
@@ -91,7 +91,7 @@ export const audits = createTable(
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     organizationId: integer("organization_id").references(() => organizations.id),
-    auditerId: integer("auditer_id"),
+    auditerId: varchar("auditer_id", { length: 256 }),
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -106,7 +106,7 @@ export const chats = createTable(
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     itemAuditId: integer("item_audit_id").references(() => itemAudits.id),
-    sender: integer("sender"),
+    sender: varchar("sender", { length: 256 }),
     chatText: text("chat_text"),
     imageUrl: varchar("image_url", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true })
@@ -136,7 +136,7 @@ export const organizationRoles = createTable(
   "organization_roles",
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-    userId: integer("user_id"),
+    userId: varchar("user_id", { length: 256 }).notNull(),
     organizationId: integer("organization_id").references(() => organizations.id),
     role: roleEnum("role").default('member'),
     createdAt: timestamp("created_at", { withTimezone: true })
