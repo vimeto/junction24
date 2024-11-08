@@ -7,7 +7,8 @@ export default {
   theme: {
   	extend: {
   		fontFamily: {
-  			sans: ["var(--font-geist-sans)", ...fontFamily.sans]
+				sans: ["Nunito Sans", ...fontFamily.sans],
+				heading: ["Nunito", ...fontFamily.sans]
   		},
   		borderRadius: {
   			lg: 'var(--radius)',
