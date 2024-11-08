@@ -16,9 +16,10 @@ const errorMessages = {
 
 interface InlineCameraProps {
     onClose: () => void;
+    onImageUploaded: (imageUrl: string) => void;
 }
 
-export const InlineCamera = ({ onClose }: InlineCameraProps) => {
+export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) => {
     const camera = useRef(null);
     const [image, setImage] = useState<string | undefined>(undefined);
     const [numberOfCameras, setNumberOfCameras] = useState(0);
@@ -51,9 +52,14 @@ export const InlineCamera = ({ onClose }: InlineCameraProps) => {
             toast.dismiss("upload-begin");
             toast.error("Upload failed");
         },
-        onClientUploadComplete() {
+        onClientUploadComplete(result) {
             toast.dismiss("upload-begin");
             toast("Upload complete!");
+            
+            if (result && result[0]) {
+                const imageUrl = result[0].url;
+                onImageUploaded?.(imageUrl);
+            }
             onClose();
         },
     });
