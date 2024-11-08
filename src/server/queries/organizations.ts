@@ -138,3 +138,61 @@ export async function getUserOrganization(id: number): Promise<OrganizationDetai
     })),
   };
 }
+
+export type LocationWithItems = {
+  id: number;
+  name: string;
+  items: {
+    id: number;
+    identifier: string;
+    itemType: string;
+    identifierType: string;
+    requireImage: boolean;
+    requireImageConfirmation: boolean;
+    lastAuditDate: Date | null;
+  }[];
+};
+
+export async function getLocationItems(organizationId: number): Promise<LocationWithItems[]> {
+  const user = await auth();
+  if (!user.userId) throw new Error("Unauthorized");
+
+  // Get user's roles
+  const roles = await db.query.organizationRoles.findMany({
+    where: eq(organizationRoles.userId, user.userId),
+    with: {
+      organization: true,
+    },
+  });
+
+  // If user is not admin and has no role in this org, return null
+  const isAdmin = roles.some((role) => role.role === "admin");
+  const hasRole = roles.some((role) => role.organizationId === organizationId);
+  if (!isAdmin && !hasRole) throw new Error("Unauthorized");
+
+  const orgLocations = await db.query.locations.findMany({
+    where: eq(locations.organizationId, organizationId),
+    with: {
+      itemAudits: {
+        with: {
+          item: true,
+          audit: true,
+        },
+      },
+    },
+  });
+
+  return orgLocations.map(location => ({
+    id: location.id,
+    name: location.name ?? "Unnamed Location",
+    items: location.itemAudits.map(audit => ({
+      id: audit.item?.id ?? 0,
+      identifier: audit.item?.identifier ?? "Unknown",
+      itemType: audit.item?.itemType ?? "item",
+      identifierType: audit.item?.identifierType ?? "serial",
+      requireImage: audit.item?.requireImage ?? false,
+      requireImageConfirmation: audit.item?.requireImageConfirmation ?? false,
+      lastAuditDate: audit.audit?.createdAt ?? null,
+    })),
+  }));
+}
