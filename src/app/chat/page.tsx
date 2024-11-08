@@ -87,6 +87,60 @@ export default function ChatWindow() {
     }
   };
 
+  const handleImageUpload = async (imageUrl: string) => {
+    // Add the image message to the chat
+    setMessages(prev => [...prev, {
+      sender: "user",
+      image: imageUrl
+    }]);
+
+    // process the image using the AI
+    await handleSendImage(imageUrl);
+  };
+  const handleSendImage = async (imageUrl: string) => {
+    setMessages(prev => [...prev, {
+      text: "Analyzing image...",
+      sender: "ai"
+    }]);
+    try {
+      const response = await fetch("/api/analyze-image", {
+          method: "POST",
+          headers: {
+              "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ 
+              imageUrl: imageUrl
+          }),
+      });
+
+      if (!response.ok) {
+          throw new Error("Failed to analyze image");
+      }
+
+      const data = await response.json();
+
+      // Remove loading message and add AI response
+      setMessages(prev => {
+          const withoutLoading = prev.slice(0, -1); // Remove loading message
+          return [...withoutLoading, {
+              text: data.response,
+              sender: "ai"
+          }];
+      });
+
+  } catch (error) {
+      console.error("Error analyzing image:", error);
+      
+      // Remove loading message and add error message
+      setMessages(prev => {
+          const withoutLoading = prev.slice(0, -1);
+          return [...withoutLoading, {
+              text: "Sorry, I encountered an error analyzing the image. Please try again.",
+              sender: "ai"
+          }];
+      });
+  }
+  };
   useEffect(() => {
     if (transcript) {
       setInputText(transcript);
@@ -288,7 +342,10 @@ export default function ChatWindow() {
             </div>
             {showCamera && (
               <div className="absolute bottom-full left-0 right-0">
-                <InlineCamera onClose={() => setShowCamera(false)} />
+                <InlineCamera
+                  onClose={() => setShowCamera(false)}
+                  onImageUploaded={(imageUrl) => handleImageUpload(imageUrl)}
+                />
               </div>
             )}
           </CardFooter>
