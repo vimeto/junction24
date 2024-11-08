@@ -1,8 +1,8 @@
-import { useState, useRef } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const useAudioVisualization = () => {
   const [visualizationData, setVisualizationData] = useState<number[]>(
-    Array(50).fill(0),
+    Array(50).fill(1), // Default visualization to constant 1 when muted
   );
   const [isMuted, setIsMuted] = useState(true); // Start with mic muted
   const audioContextRef = useRef<AudioContext | null>(null);
@@ -29,24 +29,7 @@ const useAudioVisualization = () => {
       analyserRef.current = analyser;
       dataArrayRef.current = dataArray;
 
-      const visualize = () => {
-        if (analyserRef.current && dataArrayRef.current) {
-          analyserRef.current.getByteFrequencyData(dataArrayRef.current);
-
-          // Display blank line if muted, otherwise show audio levels
-          const newData = isMuted
-            ? Array(50).fill(0)
-            : Array.from(dataArrayRef.current).map((value) =>
-                value > 0 ? value : 0,
-              );
-
-          setVisualizationData(newData);
-        }
-
-        animationRef.current = requestAnimationFrame(visualize);
-      };
-
-      visualize();
+      setIsMuted(false); // Mark mic as unmuted
     } catch (err) {
       console.error("Error accessing the microphone:", err);
     }
@@ -58,29 +41,50 @@ const useAudioVisualization = () => {
       audioContextRef.current = null;
     }
 
-    if (animationRef.current) {
-      cancelAnimationFrame(animationRef.current);
-      animationRef.current = null;
-    }
-
     if (mediaStreamRef.current) {
       mediaStreamRef.current.getTracks().forEach((track) => track.stop());
       mediaStreamRef.current = null;
     }
 
-    setVisualizationData(Array(50).fill(0)); // Reset to silent line
+    setIsMuted(true); // Mark mic as muted
   };
 
   const toggleMute = () => {
     if (isMuted) {
-      startVisualization(); // Start mic when unmuting
-    } else if (mediaStreamRef.current) {
-      // Mute mic by stopping the media stream tracks
-      mediaStreamRef.current.getTracks().forEach((track) => track.stop());
-      mediaStreamRef.current = null;
+      startVisualization();
+    } else {
+      stopVisualization();
     }
-    setIsMuted((prev) => !prev);
   };
+
+  useEffect(() => {
+    const visualize = () => {
+      if (isMuted) {
+        // When muted, show a constant 1 across the visualization
+        setVisualizationData(Array(44).fill(1));
+      } else if (analyserRef.current && dataArrayRef.current) {
+        analyserRef.current.getByteFrequencyData(dataArrayRef.current);
+
+        // Map the data array for visualization if mic is unmuted
+        const newData = Array.from(dataArrayRef.current).map((value) =>
+          value > 0 ? value : 0,
+        );
+
+        setVisualizationData(newData.slice(0, 44));
+      }
+
+      animationRef.current = requestAnimationFrame(visualize);
+    };
+
+    visualize();
+
+    return () => {
+      if (animationRef.current) {
+        cancelAnimationFrame(animationRef.current);
+        animationRef.current = null;
+      }
+    };
+  }, [isMuted]); // Rerun visualization logic if `isMuted` changes
 
   return {
     visualizationData,
@@ -88,7 +92,6 @@ const useAudioVisualization = () => {
     stopVisualization,
     toggleMute,
     isMuted,
-    setIsMuted,
   };
 };
 
