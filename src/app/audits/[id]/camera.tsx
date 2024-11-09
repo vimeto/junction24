@@ -78,17 +78,47 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
     };
 
     return (
-        <div className="w-full">
-            {!image ? (
-                <div className="relative">
-                    <div className="h-[350px] relative">
-                        <Camera 
-                            ref={camera}
-                            numberOfCamerasCallback={setNumberOfCameras}
-                            errorMessages={errorMessages}
-                            className="w-full h-full"
-                        />
-                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+        <div className="fixed inset-0 flex items-center justify-center bg-black">
+            <div className="w-full max-w-md mx-auto flex flex-col h-screen">
+                <div className="h-16 bg-[#1a1a1c] border-b border-gray-800 flex-shrink-0">
+                    <div className="h-full flex items-center px-4">
+                        <Button
+                            variant="outline"
+                            size="icon"
+                            onClick={onClose}
+                            className="border-none bg-red-500/10 text-red-500 hover:bg-red-500/20"
+                        >
+                            <X className="h-4 w-4" />
+                        </Button>
+                    </div>
+                </div>
+                <div className="flex-1 relative overflow-hidden">
+                    <div className="absolute inset-0">
+                        {!image ? (
+                            <Camera 
+                                ref={camera}
+                                numberOfCamerasCallback={setNumberOfCameras}
+                                errorMessages={errorMessages}
+                                className="h-full w-full object-cover"
+                                mirrored={true}
+                                videoSourceDeviceId={undefined}
+                                resizeMode="none"
+                                imageType="png"
+                                isImageMirror={false}
+                                isFullscreen={false}
+                            />
+                        ) : (
+                            <img 
+                                src={image} 
+                                alt='Preview' 
+                                className="h-full w-full object-cover transform scale-x-[-1]" 
+                            />
+                        )}
+                    </div>
+                </div>
+                <div className="h-[72px] bg-[#1a1a1c] border-t border-gray-800 flex-shrink-0">
+                    {!image ? (
+                        <div className="h-full flex items-center justify-center gap-4">
                             {numberOfCameras > 1 && (
                                 <Button
                                     onClick={() => camera.current?.switchCamera()}
@@ -103,39 +133,36 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
                                     const photo = camera.current?.takePhoto();
                                     setImage(photo);
                                 }}
+                                variant="outline"
                                 size="icon"
-                                className="h-12 w-12 rounded-full bg-[#2a2a2c] hover:bg-[#323234] border-gray-700"
+                                className="border-none bg-transparent text-white hover:bg-transparent hover:text-neutral-700 h-12 w-12 rounded-full"
                             >
-                                <Circle className="h-6 w-6 text-white opacity-60" />
+                                <Circle className="h-6 w-6 text-white" />
                             </Button>
                         </div>
-                    </div>
-                </div>
-            ) : (
-                <div className="relative">
-                    <div className="h-[350px] relative flex items-center justify-center">
-                        <img src={image} alt='Preview' className="h-full w-full object-cover" />
-                        <div className="absolute bottom-4 left-0 right-0 flex justify-center gap-4">
+                    ) : (
+                        <div className="h-full flex items-center justify-between px-4">
                             <Button 
                                 onClick={() => setImage(undefined)}
+                                variant="outline"
                                 size="icon"
-                                variant="destructive"
-                                className="h-10 w-10 rounded-full"
+                                className="border-none bg-[#1a1a1c] hover:bg-[#1a1a1c] text-white h-10 w-auto px-4"
                             >
-                                <Trash2 className="h-5 w-5" />
+                                Back
                             </Button>
                             <Button 
                                 onClick={handleUpload} 
                                 disabled={isUploading}
+                                variant="outline"
                                 size="icon"
-                                className="h-10 w-10 rounded-full bg-[#2a2a2c] hover:bg-[#323234] border-gray-700"
+                                className="border-none bg-[#1a1a1c] hover:bg-[#1a1a1c] text-white h-10 w-auto px-4 disabled:bg-[#1a1a1c]"
                             >
-                                <Upload className="h-5 w-5 text-white" />
+                                Send
                             </Button>
                         </div>
-                    </div>
+                    )}
                 </div>
-            )}
+            </div>
         </div>
     );
 }; 
