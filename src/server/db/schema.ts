@@ -63,14 +63,32 @@ export const items = createTable(
   }
 );
 
+export const auditers = createTable(
+  "auditers",
+  {
+    id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+    name: varchar("name", { length: 256 }).notNull(),
+    phoneNumber: varchar("phone_number", { length: 20 }).notNull(),
+    createdAt: timestamp("created_at", { withTimezone: true })
+      .default(sql`CURRENT_TIMESTAMP`)
+      .notNull(),
+    updatedAt: timestamp("updated_at", { withTimezone: true }).$onUpdate(
+      () => new Date()
+    ),
+  }
+);
+
+export const itemAuditStateEnum = pgEnum('item_audit_state', ['requires_validation', 'validated', 'rejected']);
+
 export const itemAudits = createTable(
   "item_audits",
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     itemId: integer("item_id").references(() => items.id),
     locationId: integer("location_id").references(() => locations.id),
-    auditerId: varchar("auditer_id", { length: 256 }),
+    auditerId: integer("auditer_id").references(() => auditers.id),
     auditId: integer("audit_id").references(() => audits.id),
+    state: itemAuditStateEnum("state").default('requires_validation').notNull(),
     imageUrl: varchar("image_url", { length: 255 }),
     imageConfirmed: boolean("image_confirmed").default(false),
     latitude: varchar("latitude", { length: 50 }),
@@ -90,8 +108,9 @@ export const audits = createTable(
   "audits",
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
+    uuid: varchar("uuid", { length: 36 }).notNull().unique(),
     organizationId: integer("organization_id").references(() => organizations.id),
-    auditerId: varchar("auditer_id", { length: 256 }),
+    auditerId: integer("auditer_id").references(() => auditers.id),
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -179,12 +198,20 @@ export const itemAuditsRelations = relations(itemAudits, ({ one }) => ({
     fields: [itemAudits.auditId],
     references: [audits.id],
   }),
+  auditer: one(auditers, {
+    fields: [itemAudits.auditerId],
+    references: [auditers.id],
+  }),
 }));
 
 export const auditsRelations = relations(audits, ({ one, many }) => ({
   organization: one(organizations, {
     fields: [audits.organizationId],
     references: [organizations.id],
+  }),
+  auditer: one(auditers, {
+    fields: [audits.auditerId],
+    references: [auditers.id],
   }),
   itemAudits: many(itemAudits),
 }));
@@ -207,4 +234,9 @@ export const organizationRolesRelations = relations(organizationRoles, ({ one })
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   locations: many(locations),
   organizationRoles: many(organizationRoles),
+}));
+
+export const auditersRelations = relations(auditers, ({ many }) => ({
+  itemAudits: many(itemAudits),
+  audits: many(audits),
 }));
