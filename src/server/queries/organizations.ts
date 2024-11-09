@@ -161,6 +161,7 @@ export async function getUserOrganization(id: number): Promise<OrganizationDetai
 export type LocationWithItems = {
   id: number;
   name: string;
+  organizationId: number;
   items: {
     id: number;
     identifier: string;
@@ -209,6 +210,7 @@ export async function getLocationItems(organizationId: number): Promise<Location
   const orgLocationsWithItems = orgLocations.map(location => ({
     id: location.id,
     name: location.name ?? "Unnamed Location",
+    organizationId: location.organizationId ?? 0,
     items: location.itemAudits.map(audit => ({
       id: audit.item?.id ?? 0,
       identifier: audit.item?.identifier ?? "Unknown",
@@ -225,6 +227,7 @@ export async function getLocationItems(organizationId: number): Promise<Location
     {
       id: -1, // Special ID for no location
       name: "No Location",
+      organizationId: organizationId ?? 0,
       items: itemsWithoutLocation.map(item => ({
         id: item.id,
         identifier: item.identifier ?? "Unknown",
