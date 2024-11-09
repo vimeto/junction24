@@ -49,7 +49,7 @@ const TextInput: React.FC<TextInputProps> = ({
 
   return (
     <div className="mx-auto flex w-full max-w-lg flex-col items-center space-y-2 border-none bg-transparent">
-      {isFocused && (
+      {(isFocused || inputText.length != 0) && (
         <div className="max-h-64 w-full overflow-y-auto">
           <Textarea
             ref={textareaRef}
@@ -97,7 +97,7 @@ const TextInput: React.FC<TextInputProps> = ({
         >
           <Mic className="h-4 w-4" />
         </Button>
-        {!isFocused ? (
+        {!isFocused && inputText.length == 0 ? (
           <Textarea
             ref={textareaRef}
             placeholder="Type a message..."
