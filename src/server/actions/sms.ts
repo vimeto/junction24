@@ -92,7 +92,7 @@ export async function createFirstAuditMessage(auditUuid: string): Promise<void> 
     });
     const responseMessage = completion.choices[0]?.message;
     const savedAssistantMessage = await createChat({
-      itemAuditId: auditUuid,
+      auditUuid: auditUuid,
       sender: "assistant",
       chatText: responseMessage?.content || undefined,
     });
