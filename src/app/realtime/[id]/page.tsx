@@ -9,7 +9,7 @@ export default async function RealtimePage({ params }: PageProps) {
   const awaitedParams = await params;
   const id = awaitedParams.id;
 
-  const initialMessages = await getVisibleChats(id);
+  const initialMessages = await getVisibleChats(id, true);
 
   return <RealtimeWindow id={id} initialMessages={initialMessages} />;
 }
