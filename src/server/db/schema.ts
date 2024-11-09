@@ -128,6 +128,7 @@ export const chats = createTable(
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
     auditId: integer("audit_id").references(() => audits.id),
     sender: varchar("sender", { length: 256 }),
+    hidden: boolean("hidden").default(false),
     chatText: text("chat_text"),
     imageUrl: varchar("image_url", { length: 255 }),
     createdAt: timestamp("created_at", { withTimezone: true })
