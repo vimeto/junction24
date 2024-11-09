@@ -45,11 +45,10 @@ const auditTool = {
   type: "function" as const,
   function: {
     name: "audit_item_location",
-    description: "Generates a report stating that the item has been audited to the provided location. " +
-      "The report should include all available metadata about the item's condition and location.",
+    description: "Generates a report stating that the item has been audited to the provided location.",
     parameters: {
       type: "object",
-      required: ["auditor_id", "item_id"],
+      required: ["auditor_id", "item_id", "location_id"],
       properties: {
         auditer_id: {
           type: "string",
@@ -58,6 +57,10 @@ const auditTool = {
         item_id: {
           type: "string",
           description: "Unique identifier for the item being audited"
+        },
+        location_id: {
+          type: "string",
+          description: "Unique identifier for the location"
         },
         metadata: {
           type: "object",
@@ -99,6 +102,9 @@ const auditTool = {
     }
   }
 } as const;
+
+// Import the POST handler from itemAudits route
+import { POST as itemAuditHandler } from '../itemAudits/route';
 
 export async function POST(req: Request) {
   try {
@@ -166,16 +172,18 @@ export async function POST(req: Request) {
         console.log('Audit request payload:', args);
         console.log('Request URL:', `${process.env.NEXT_PUBLIC_APP_URL}/api/itemAudits`);
 
-        // Call the itemAudits endpoint
-        const auditResponse = await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/itemAudits`, {
+        // Create a new Request object
+        const auditRequest = new Request(`${process.env.NEXT_PUBLIC_APP_URL}/api/itemAudits`, {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${process.env.CLERK_SECRET_KEY}`,
           },
           body: JSON.stringify(args)
         });
 
+        // Call the handler directly
+        const auditResponse = await itemAuditHandler(auditRequest);
+        
         if (!auditResponse.ok) {
           const errorText = await auditResponse.text();
           throw new Error(`Failed to create audit: ${auditResponse.status} - ${errorText}`);

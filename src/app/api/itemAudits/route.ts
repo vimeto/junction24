@@ -8,6 +8,7 @@ import { v4 as uuidv4 } from 'uuid';
 const auditItemSchema = z.object({
   auditer_id: z.string().transform(val => parseInt(val, 10)),
   item_id: z.string().transform(val => parseInt(val, 10)),
+  location_id: z.string().transform(val => parseInt(val, 10)),
   metadata: z.object({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
@@ -22,6 +23,7 @@ const auditItemSchema = z.object({
 export async function POST(req: Request) {
   try {
     console.log("Item audit post request")
+    console.log(req)  
     // Authenticate user
     const user = await auth();
     if (!user.userId) {
@@ -30,6 +32,7 @@ export async function POST(req: Request) {
 
     // Parse and validate the request body
     const body = await req.json();
+    console.log("Request body:", body); // Add this for debugging
     const validatedData = auditItemSchema.parse(body);
 
     // Create a new audit record
@@ -49,6 +52,7 @@ export async function POST(req: Request) {
       .insert(itemAudits)
       .values({
         itemId: validatedData.item_id,
+        locationId: validatedData.location_id,
         auditerId: validatedData.auditer_id,
         auditId: audit.id,
         state: 'requires_validation',
