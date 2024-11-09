@@ -9,45 +9,21 @@ declare global {
   }
 }
 import { Button } from "~/components/ui/button";
-import { Input } from "~/components/ui/input";
-import {
-  Card,
-  CardHeader,
-  CardTitle,
-  CardContent,
-  CardFooter,
-} from "~/components/ui/card";
+import { Card, CardContent, CardFooter } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import { Mic, MicOff, Send, Camera, Keyboard, X } from "lucide-react";
 import useSpeechRecognition from "./_hooks/useSpeechRecognition";
 import useAudioVisualization from "./_hooks/useAudioVisualization";
 import { InlineCamera } from "./camera";
+import AudioBar from "./audioBar";
+import TextInput from "./textBar";
 
 interface Message {
   text?: string;
   sender: "user" | "ai";
   image?: string;
 }
-
-interface SendMessageResponse {
-  text: string;
-}
-
-const sendMessage = async (text: string): Promise<string> => {
-  console.log("Sending message:", text);
-  const responses: string[] = [
-    "Based on your description, it sounds like the issue might be related to the system's cooling fan. Have you checked if it's running properly?",
-    "I recommend checking the device's power supply. Can you verify if all cables are securely connected?",
-    "It seems like there might be a software conflict. Let's try running a system diagnostic. Can you open the command prompt and type 'sfc /scannow'?",
-    "The symptoms you're describing could indicate a hard drive issue. When was the last time you ran a disk check?",
-    "Have you recently installed any new hardware or software? This could be causing compatibility issues with your system.",
-  ];
-  return (
-    responses[Math.floor(Math.random() * responses.length)] ||
-    "Sorry, I couldn't generate a response."
-  );
-};
 
 export default function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([
@@ -65,22 +41,22 @@ export default function ChatWindow() {
     stopVisualization,
     toggleMute,
     isMuted,
-    setIsMuted,
   } = useAudioVisualization();
   const [isListening, setIsListening] = useState(true); // Start in audio mode by default
   const [inputText, setInputText] = useState("");
   const [showCamera, setShowCamera] = useState(false);
+  const endOfChatsRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    if (isListening) {
+    if (isListening && !isMuted) {
       startVisualization();
     } else {
       stopVisualization();
-      setIsMuted(true); // Mute the mic automatically if switching to chat mode
     }
   }, [isListening]);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInputText(e.target.value);
     if (isListening) {
       setIsListening(false); // Switch to chat mode and mute mic on typing
@@ -89,58 +65,69 @@ export default function ChatWindow() {
 
   const handleImageUpload = async (imageUrl: string) => {
     // Add the image message to the chat
-    setMessages(prev => [...prev, {
-      sender: "user",
-      image: imageUrl
-    }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: "user",
+        image: imageUrl,
+      },
+    ]);
 
     // process the image using the AI
     await handleSendImage(imageUrl);
   };
   const handleSendImage = async (imageUrl: string) => {
-    setMessages(prev => [...prev, {
-      text: "Analyzing image...",
-      sender: "ai"
-    }]);
+    setMessages((prev) => [
+      ...prev,
+      {
+        text: "Analyzing image...",
+        sender: "ai",
+      },
+    ]);
     try {
       const response = await fetch("/api/chat", {
-          method: "POST",
-          headers: {
-              "Content-Type": "application/json",
-          },
-          body: JSON.stringify({ 
-              imageUrl: imageUrl
-          }),
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl: imageUrl,
+        }),
       });
 
       if (!response.ok) {
-          const errorText = await response.text();
-          throw new Error(errorText || "Failed to analyze image");
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to analyze image");
       }
 
       const data = await response.json();
 
       // Remove loading message and add AI response
-      setMessages(prev => {
-          const withoutLoading = prev.slice(0, -1); // Remove loading message
-          return [...withoutLoading, {
-              text: data.response,
-              sender: "ai"
-          }];
+      setMessages((prev) => {
+        const withoutLoading = prev.slice(0, -1); // Remove loading message
+        return [
+          ...withoutLoading,
+          {
+            text: data.response,
+            sender: "ai",
+          },
+        ];
       });
-
-  } catch (error) {
+    } catch (error) {
       console.error("Error analyzing image:", error);
-      
+
       // Remove loading message and add error message
-      setMessages(prev => {
-          const withoutLoading = prev.slice(0, -1);
-          return [...withoutLoading, {
-              text: "Sorry, I encountered an error analyzing the image. Please try again.",
-              sender: "ai"
-          }];
+      setMessages((prev) => {
+        const withoutLoading = prev.slice(0, -1);
+        return [
+          ...withoutLoading,
+          {
+            text: "Sorry, I encountered an error analyzing the image. Please try again.",
+            sender: "ai",
+          },
+        ];
       });
-  }
+    }
   };
   useEffect(() => {
     if (transcript) {
@@ -198,7 +185,29 @@ export default function ChatWindow() {
   };
 
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+  const scrollToBottom = () => {
+    endOfChatsRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
+  useEffect(() => {
+    if (
+      scrollAreaRef.current &&
+      messagesContainerRef.current &&
+      endOfChatsRef.current
+    ) {
+      const messagesContainer = messagesContainerRef.current;
+      // Total height of all messages
+      const messagesHeight = messagesContainer.scrollHeight;
+      // Determine if content overflows
+      const isOverflowing = messagesHeight > screen.height;
+      console.log("isOverflowing", isOverflowing);
+
+      if (isOverflowing) {
+        // Scroll to the bottom
+        endOfChatsRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [messages]);
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
@@ -211,7 +220,7 @@ export default function ChatWindow() {
         <Card className="z-0 flex min-h-screen w-full max-w-md flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
           <CardContent className="flex-1 p-0">
             <ScrollArea className="h-full" ref={scrollAreaRef}>
-              <div className="space-y-4 p-4">
+              <div className="space-y-4 p-4" ref={messagesContainerRef}>
                 {messages.map((message, index) => (
                   <div
                     key={index}
@@ -247,98 +256,36 @@ export default function ChatWindow() {
                     </div>
                   </div>
                 ))}
+                <div ref={endOfChatsRef} />
               </div>
             </ScrollArea>
           </CardContent>
           <CardFooter className="sticky bottom-0 z-10 w-full border-gray-800 bg-[#1a1a1c] p-4">
-            <div className="flex w-full items-center space-x-2">
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => setShowCamera(!showCamera)}
-                className={`border-gray-700 ${
-                  showCamera 
-                    ? "bg-red-500/10 hover:bg-red-500/20 text-red-500" 
-                    : "bg-[#2a2a2c] hover:bg-[#323234]"
-                }`}
-              >
-                {showCamera ? (
-                  <X className="h-4 w-4" />
-                ) : (
-                  <Camera className="h-4 w-4" />
-                )}
-              </Button>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => {
-                  if (isListening) {
-                    toggleMute(); // Only toggle mute if in audio mode
-                  } else {
-                    setIsListening(true);
-                    toggleMute(); // Switch back to audio mode
-                  }
-                }}
-                className={`border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]`}
-              >
-                {isMuted ? (
-                  <MicOff className="h-4 w-4" />
-                ) : (
-                  <Mic className="h-4 w-4" />
-                )}
-              </Button>
-
+            <div className="flex min-h-12 w-full items-center space-x-2">
               {isListening ? (
-                <div className="flex h-10 flex-1 items-center overflow-hidden rounded-md bg-[#2a2a2c] px-2">
-                  {visualizationData.map((value, index) => (
-                    <div
-                      key={index}
-                      className="mx-px w-0.5 bg-gray-400"
-                      style={{ height: `${value}%` }}
-                    ></div>
-                  ))}
-                </div>
-              ) : (
-                <Input
-                  placeholder="Type a message..."
-                  value={inputText}
-                  onChange={handleInputChange}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      if (e.shiftKey) {
-                        setInputText((prev) => prev + "\n"); // Shift+Enter for new line
-                      } else {
-                        e.preventDefault();
-                        // Send message logic here
-                        setInputText("");
-                      }
-                    }
-                  }}
-                  className="flex-1 border-gray-700 bg-[#2a2a2c] text-gray-200 placeholder-gray-500"
+                <AudioBar
+                  isListening={isListening}
+                  isMuted={isMuted}
+                  visualizationData={visualizationData}
+                  toggleMute={toggleMute}
+                  setIsListening={setIsListening}
+                  fileInputRef={fileInputRef}
+                  showCamera={showCamera}
+                  setShowCamera={setShowCamera}
                 />
-              )}
-
-              {isListening && (
-                <Button
-                  variant="outline"
-                  size="icon"
-                  onClick={() => {
-                    setIsListening(false);
-                    setIsMuted(true);
-                  }}
-                  className="border-gray-700 bg-[#2a2a2c] hover:bg-[#323234]"
-                >
-                  <Keyboard className="h-4 w-4" />
-                </Button>
-              )}
-
-              {!isListening && (
-                <Button
-                  onClick={handleSend}
-                  className="bg-[#3a3a3c] text-white hover:bg-[#454547]"
-                >
-                  <Send className="h-4 w-4" />
-                </Button>
+              ) : (
+                <TextInput
+                  inputText={inputText}
+                  setInputText={setInputText}
+                  handleSend={handleSend}
+                  handleInputChange={handleInputChange}
+                  isListening={isListening}
+                  isMuted={isMuted}
+                  toggleMute={toggleMute}
+                  setIsListening={setIsListening}
+                  showCamera={showCamera}
+                  setShowCamera={setShowCamera}
+                />
               )}
             </div>
             {showCamera && (
