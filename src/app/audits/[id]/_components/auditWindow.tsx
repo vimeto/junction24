@@ -26,19 +26,18 @@ interface Message {
 
 
 interface PageProps {
-  params: { id: string };
+  params: {
+    id: string;
+    initialMessages: Message[];
+  };
 }
 
 
 export default function AuditWindow({ params }: PageProps) {
   const auditUuid = params.id;
+  const initialMessages = params.initialMessages;
 
-  const [messages, setMessages] = useState<Message[]>([
-    {
-      text: "Welcome to Tech Maintenance Support. How can I assist you today?",
-      role: "assistant",
-    },
-  ]);
+  const [messages, setMessages] = useState<Message[]>(initialMessages);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const { transcript, startListening, stopListening } = useSpeechRecognition();
