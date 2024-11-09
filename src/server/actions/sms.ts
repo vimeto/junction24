@@ -70,6 +70,7 @@ export async function createFirstAuditMessage(auditUuid: string): Promise<void> 
       auditUuid: auditUuid,
       sender: "assistant",
       chatText: responseMessage?.content || undefined,
+      hidden: true,
     });
   } catch (error) {
     console.error("Error building chat context for audits:", error);

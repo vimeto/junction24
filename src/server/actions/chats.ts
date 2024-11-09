@@ -8,6 +8,7 @@ const chatSchema = z.object({
   sender: z.enum(["user", "assistant"]),
   chatText: z.string().optional(),
   imageUrl: z.string().optional(),
+  hidden: z.boolean().optional(),
 });
 
 type ChatInput = z.infer<typeof chatSchema>;
@@ -18,11 +19,11 @@ export async function createChat(input: ChatInput) {
   const audit = await db.query.audits.findFirst({
     where: (model, { eq }) => eq(model.uuid, validatedData.auditUuid),
   });
-  
+
   if (!audit) {
     throw new Error("Audit not found");
   }
-  
+
   const [savedChat] = await db
     .insert(chats)
     .values({
@@ -30,6 +31,7 @@ export async function createChat(input: ChatInput) {
       sender: validatedData.sender,
       chatText: validatedData.chatText ?? null,
       imageUrl: validatedData.imageUrl ?? null,
+      hidden: validatedData.hidden ?? false,
       createdAt: new Date(),
     })
     .returning();
