@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Camera } from 'react-camera-pro';
 import { useUploadThing } from '~/utils/uploadthing';
 import { toast } from 'sonner';
@@ -25,6 +25,29 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
     const camera = useRef(null);
     const [image, setImage] = useState<string | undefined>(undefined);
     const [numberOfCameras, setNumberOfCameras] = useState(0);
+    const [hasPermission, setHasPermission] = useState(false);
+
+    // Request permission once when component mounts
+    useEffect(() => {
+        const requestPermission = async () => {
+            try {
+                await navigator.mediaDevices.getUserMedia({ video: true });
+                setHasPermission(true);
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                toast.error("Camera access denied");
+            }
+        };
+        
+        requestPermission();
+        
+        // Cleanup
+        return () => {
+            if (camera.current) {
+                camera.current?.stopCamera();
+            }
+        };
+    }, []);
 
     const base64ToFile = (base64: string, filename: string) => {
         const arr = base64.split(',');
