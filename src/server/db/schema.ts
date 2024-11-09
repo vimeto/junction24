@@ -78,6 +78,8 @@ export const auditers = createTable(
   }
 );
 
+export const itemAuditStateEnum = pgEnum('item_audit_state', ['requires_validation', 'validated', 'rejected']);
+
 export const itemAudits = createTable(
   "item_audits",
   {
@@ -86,6 +88,7 @@ export const itemAudits = createTable(
     locationId: integer("location_id").references(() => locations.id),
     auditerId: integer("auditer_id").references(() => auditers.id),
     auditId: integer("audit_id").references(() => audits.id),
+    state: itemAuditStateEnum("state").default('requires_validation').notNull(),
     imageUrl: varchar("image_url", { length: 255 }),
     imageConfirmed: boolean("image_confirmed").default(false),
     latitude: varchar("latitude", { length: 50 }),
