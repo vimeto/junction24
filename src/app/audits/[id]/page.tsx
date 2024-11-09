@@ -305,7 +305,7 @@ export default function ChatWindow() {
               )}
             </div>
             {showCamera && (
-              <div className="absolute bottom-full left-0 right-0">
+              <div className="fixed inset-0 bg-black z-50">
                 <InlineCamera
                   onClose={() => setShowCamera(false)}
                   onImageUploaded={(imageUrl) => handleImageUpload(imageUrl)}
