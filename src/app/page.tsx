@@ -31,43 +31,49 @@ async function Images() {
 
 export default async function HomePage() {
   return (
-    <main className="">
-      <div className="grid h-screen w-screen grid-cols-1 items-center justify-center gap-6 p-4 sm:grid-cols-2 sm:gap-2">
-        <Link
-          href="/admin"
-          className="flex h-full w-full items-end justify-center sm:items-center"
-        >
-          <Card className="h-full max-h-60 w-full max-w-60 rounded-[20px] bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-2 shadow-2xl hover:bg-neutral-900 sm:max-h-80 sm:max-w-xs">
-            <CardContent className="flex h-full flex-col items-center justify-center rounded-2xl bg-neutral-800">
-              <div className="items-center justify-center rounded-2xl">
-                <h2 className="flex items-center justify-center pb-1 text-xl sm:text-4xl">
-                  Admin demo
-                </h2>
-                <span className="sm:text-md flex items-center justify-center text-sm text-neutral-300">
-                  (Requires login)
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+    <main className="cursor-default">
+      <div className="mx-auto max-w-[800px]">
+        <div className="grid h-screen grid-cols-1 items-center justify-center gap-4 p-2 lg:grid-cols-2">
+          <div className="flex h-full w-full items-end justify-center lg:items-center lg:justify-end lg:-mr-3">
+            <Link
+              href="/admin"
+              className="block h-full max-h-48 w-full max-w-48 sm:max-h-64 sm:max-w-64 cursor-pointer"
+            >
+              <Card className="h-full rounded-[20px] bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-2 shadow-2xl hover:bg-neutral-900">
+                <CardContent className="flex h-full flex-col items-center justify-center rounded-2xl bg-neutral-800">
+                  <div className="items-center justify-center rounded-2xl">
+                    <h2 className="flex items-center justify-center pb-1 text-lg sm:text-2xl">
+                      Admin demo
+                    </h2>
+                    <span className="flex items-center justify-center text-center w-full text-xs sm:text-sm text-neutral-300">
+                      (Requires login)
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
 
-        <Link
-          href="/audits/1"
-          className="flex h-full w-full items-start justify-center sm:items-center"
-        >
-          <Card className="h-full max-h-60 w-full max-w-60 rounded-[20px] bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-2 shadow-2xl hover:bg-neutral-900 sm:max-h-80 sm:max-w-xs">
-            <CardContent className="flex h-full flex-col items-center justify-center rounded-2xl bg-neutral-800">
-              <div className="items-center justify-center">
-                <h2 className="flex items-center justify-center pb-1 text-xl sm:text-4xl">
-                  Audit demo
-                </h2>
-                <span className="sm:text-md flex items-center justify-center text-sm text-neutral-300">
-                  (Does not require login)
-                </span>
-              </div>
-            </CardContent>
-          </Card>
-        </Link>
+          <div className="flex h-full w-full items-start justify-center lg:items-center lg:justify-start lg:-ml-3">
+            <Link
+              href="/audits/1"
+              className="block h-full max-h-48 w-full max-w-48 sm:max-h-64 sm:max-w-64 cursor-pointer"
+            >
+              <Card className="h-full rounded-[20px] bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-2 shadow-2xl hover:bg-neutral-900">
+                <CardContent className="flex h-full flex-col items-center justify-center rounded-2xl bg-neutral-800">
+                  <div className="items-center justify-center rounded-2xl">
+                    <h2 className="flex items-center justify-center pb-1 text-lg sm:text-2xl">
+                      Audit demo
+                    </h2>
+                    <span className="flex items-center justify-center text-center w-full text-xs sm:text-sm text-neutral-300">
+                      (Does not require login)
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+            </Link>
+          </div>
+        </div>
       </div>
     </main>
   );
