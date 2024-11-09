@@ -1,6 +1,9 @@
 'use server'
 
 import { env } from "~/env";
+import { buildChatContext } from "../utils/chatContext";
+import { createChat } from "./chats";
+import OpenAI from "openai";
 
 function formatPhoneNumber(phone: string): string {
   let cleaned = phone.replace(/[^\d+]/g, '');
@@ -71,5 +74,29 @@ export async function sendSMS(to: string, name: string, auditUuid: string) {
         ? `Failed to send SMS: ${error.message}`
         : "Failed to send SMS notification"
     );
+  }
+}
+
+
+// Remove this later
+const openai = new OpenAI({
+apiKey: process.env.OPENAI_API_KEY,
+});
+export async function createFirstAuditMessage(auditUuid: string): Promise<void> {
+  try {
+    const context = await buildChatContext(auditUuid);
+    // Call OpenAI API with appropriate model
+    const completion = await openai.chat.completions.create({
+      messages: [{ role: "user", content: context }],
+      model: "gpt-4o",
+    });
+    const responseMessage = completion.choices[0]?.message;
+    const savedAssistantMessage = await createChat({
+      itemAuditId: auditUuid,
+      sender: "assistant",
+      chatText: responseMessage?.content || undefined,
+    });
+  } catch (error) {
+    console.error("Error building chat context for audits:", error);
   }
 }
