@@ -157,6 +157,11 @@ export default function ChatWindow() {
       try {
         // Get user location
         const location = await getCurrentLocation();
+        
+        const previousMessages = messages.map(msg => ({
+          role: msg.role,
+          content: msg.text || ""
+        }));
 
         // Add user message immediately
         const newMessage = { text: inputText, sender: "user" };
@@ -176,7 +181,11 @@ export default function ChatWindow() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ text: inputText, location: location }),
+          body: JSON.stringify({ 
+            text: inputText, 
+            location: location,
+            previousMessages 
+          }),
         });
 
         if (!response.ok) {
