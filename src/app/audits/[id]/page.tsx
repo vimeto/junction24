@@ -46,6 +46,7 @@ export default function ChatWindow() {
   const [showCamera, setShowCamera] = useState(false);
   const endOfChatsRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     if (isListening && !isMuted) {
@@ -153,8 +154,10 @@ export default function ChatWindow() {
 
   // Modified sendMessage function
   const handleSend = async () => {
-    if (inputText.trim()) {
+    if (inputText.trim() && !isLoading) {
       try {
+        setIsLoading(true);
+        
         // Get user location
         const location = await getCurrentLocation();
         
@@ -203,7 +206,7 @@ export default function ChatWindow() {
           { text: data.response, role: "assistant" },
         ]);
       } catch (error) {
-        console.error("Error getting location or sending message:", error);
+        console.error("Error sending message:", error);
         // Add error message
         setMessages((prevMessages) => [
           ...prevMessages,
@@ -212,6 +215,8 @@ export default function ChatWindow() {
             role: "assistant",
           },
         ]);
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -313,6 +318,7 @@ export default function ChatWindow() {
                   setIsListening={setIsListening}
                   showCamera={showCamera}
                   setShowCamera={setShowCamera}
+                  isLoading={isLoading}
                 />
               )}
             </div>
