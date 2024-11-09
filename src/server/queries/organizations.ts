@@ -78,6 +78,11 @@ export type OrganizationDetails = {
     name: string;
     latitude: string | null;
     longitude: string | null;
+    items: {
+      id: number;
+      identifier: string;
+      lastAuditDate: Date | null;
+    }[];
   }[];
 };
 
@@ -101,7 +106,16 @@ export async function getUserOrganization(id: number): Promise<OrganizationDetai
   const org = await db.query.organizations.findFirst({
     where: eq(organizations.id, id),
     with: {
-      locations: true,
+      locations: {
+        with: {
+          itemAudits: {
+            with: {
+              item: true,
+              audit: true,
+            },
+          },
+        },
+      },
     },
   });
 
@@ -135,6 +149,11 @@ export async function getUserOrganization(id: number): Promise<OrganizationDetai
       name: loc.name ?? "Unnamed Location",
       latitude: loc.latitude,
       longitude: loc.longitude,
+      items: loc.itemAudits.map(audit => ({
+        id: audit.item?.id ?? 0,
+        identifier: audit.item?.identifier ?? "Unknown",
+        lastAuditDate: audit.audit?.createdAt ?? null,
+      })),
     })),
   };
 }

@@ -11,6 +11,8 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { useState } from "react";
 import { type LocationWithItems } from "~/server/queries/organizations";
+import { sendSMS } from "~/server/actions/sms";
+import { toast } from "sonner";
 
 type Auditor = {
   id: string;
@@ -28,6 +30,7 @@ export function RequestAuditModal({
   location: LocationWithItems | null;
 }) {
   const [auditors, setAuditors] = useState<Auditor[]>([{ id: "1", name: "", phone: "" }]);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const addAuditor = () => {
     setAuditors([...auditors, { id: crypto.randomUUID(), name: "", phone: "" }]);
@@ -36,6 +39,36 @@ export function RequestAuditModal({
   const removeAuditor = (id: string) => {
     if (auditors.length === 1) return;
     setAuditors(auditors.filter(auditor => auditor.id !== id));
+  };
+
+  const updateAuditor = (id: string, field: keyof Auditor, value: string) => {
+    setAuditors(auditors.map(auditor =>
+      auditor.id === id ? { ...auditor, [field]: value } : auditor
+    ));
+  };
+
+  const handleSubmit = async () => {
+    if (!location) return;
+
+    setIsSubmitting(true);
+    try {
+      // Send SMS to each auditor
+      await Promise.all(
+        auditors.map(async (auditor) => {
+          if (!auditor.name || !auditor.phone) {
+            throw new Error("Please fill in all auditor details");
+          }
+          await sendSMS(auditor.phone, auditor.name);
+        })
+      );
+
+      toast.success("Audit request sent successfully!");
+      onOpenChange(false);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : "Failed to send audit request");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (!location) return null;
@@ -66,11 +99,21 @@ export function RequestAuditModal({
               </div>
               <div className="grid gap-2">
                 <Label htmlFor={`name-${auditor.id}`}>Name</Label>
-                <Input id={`name-${auditor.id}`} placeholder="Enter name" />
+                <Input
+                  id={`name-${auditor.id}`}
+                  placeholder="Enter name"
+                  value={auditor.name}
+                  onChange={(e) => updateAuditor(auditor.id, "name", e.target.value)}
+                />
               </div>
               <div className="grid gap-2">
                 <Label htmlFor={`phone-${auditor.id}`}>Phone Number</Label>
-                <Input id={`phone-${auditor.id}`} placeholder="Enter phone number" />
+                <Input
+                  id={`phone-${auditor.id}`}
+                  placeholder="Enter phone number"
+                  value={auditor.phone}
+                  onChange={(e) => updateAuditor(auditor.id, "phone", e.target.value)}
+                />
               </div>
             </div>
           ))}
@@ -87,7 +130,12 @@ export function RequestAuditModal({
           <Button variant="outline" onClick={() => onOpenChange(false)}>
             Cancel
           </Button>
-          <Button type="submit">Request Audit</Button>
+          <Button
+            onClick={handleSubmit}
+            disabled={isSubmitting}
+          >
+            {isSubmitting ? "Sending..." : "Request Audit"}
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>
