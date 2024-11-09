@@ -41,6 +41,11 @@ async function seed() {
     }
 
     // For org1, create 4 locations
+    // locations
+    // 60.161997, 24.905360
+    // 60.162380, 24.904814
+    // 60.162082, 24.903487
+    // 60.161917, 24.902476
     const locationsOrg1 = [];
     for (let i = 1; i <= 4; i++) {
       const [location] = await db
