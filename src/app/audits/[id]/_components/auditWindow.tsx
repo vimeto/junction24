@@ -76,7 +76,7 @@ export default function AuditWindow({ params }: PageProps) {
   const handleImageUpload = async (imageUrl: string) => {
     // Generate unique ID for message pair
     const messageId = Date.now();
-    
+
     // Immediately show image with loading state
     setMessages(prev => [
       ...prev,
@@ -87,17 +87,24 @@ export default function AuditWindow({ params }: PageProps) {
       },
       {
         id: messageId + 1,
-        role: "assistant", 
+        role: "assistant",
         text: "Analyzing image...",
         isLoading: true
       }
     ]);
 
     try {
+      const location = await getCurrentLocation();
+      const body = JSON.stringify({
+        imageUrl,
+        location,
+        auditUuid
+      });
+
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ imageUrl })
+        body
       });
 
       if (!response.ok) {
@@ -107,7 +114,7 @@ export default function AuditWindow({ params }: PageProps) {
       const data = await response.json();
 
       // Update only the assistant message
-      setMessages(prev => prev.map(msg => 
+      setMessages(prev => prev.map(msg =>
         msg.id === messageId + 1
           ? { ...msg, text: data.response, isLoading: false }
           : msg
