@@ -232,8 +232,8 @@ export default function ChatWindow() {
 
   return (
     <>
-      <div className="flex items-center justify-center">
-        <Card className="z-0 flex min-h-screen w-full max-w-md flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
+      <div className="flex h-full items-center justify-center">
+        <Card className="z-0 flex h-full w-full flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
           <CardContent className="flex-1 p-0">
             <ScrollArea className="h-full" ref={scrollAreaRef}>
               <div className="space-y-4 p-4" ref={messagesContainerRef}>
