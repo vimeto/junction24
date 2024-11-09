@@ -69,18 +69,25 @@ export async function createFirstAuditMessage(auditUuid: string): Promise<void> 
     const context = await buildChatContext(auditUuid);
     const prompt = initialPrompt(context);
 
+    await createChat({
+      auditUuid: auditUuid,
+      sender: "user",
+      chatText: prompt,
+      hidden: true,
+    });
+
     // Call OpenAI API with appropriate model
     const completion = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
-      model: "gpt-4o",
+      model: "gpt-4o-mini",
     });
     const responseMessage = completion.choices[0]?.message;
 
-    const savedAssistantMessage = await createChat({
+    await createChat({
       auditUuid: auditUuid,
       sender: "assistant",
       chatText: responseMessage?.content || undefined,
-      hidden: true,
+      hidden: false,
     });
   } catch (error) {
     console.error("Error building chat context for audits:", error);

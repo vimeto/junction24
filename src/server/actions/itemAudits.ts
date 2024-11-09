@@ -5,10 +5,10 @@ import { itemAudits } from "~/server/db/schema";
 import { v4 as uuidv4 } from 'uuid';
 
 const auditItemSchema = z.object({
-  auditer_id: z.string().transform(val => parseInt(val, 10)),
-  item_id: z.string().transform(val => parseInt(val, 10)),
-  location_id: z.string().transform(val => parseInt(val, 10)),
-  audit_id: z.string().transform(val => parseInt(val, 10)),
+  auditer_id: z.number(),
+  item_id: z.number(),
+  location_id: z.number().optional(),
+  audit_id: z.number(),
   metadata: z.object({
     latitude: z.number().optional(),
     longitude: z.number().optional(),
@@ -22,11 +22,10 @@ const auditItemSchema = z.object({
 
 // Add this type to match the zod schema
 type ItemAuditInput = {
-  auditer_id: string;
-  item_id: string;
-  location_id: string;
-  // AUDIT UUID!!
-  audit_id: string;
+  auditer_id: number;
+  item_id: number;
+  location_id?: number;
+  audit_id: number;
   metadata?: {
     latitude?: number;
     longitude?: number;
@@ -39,11 +38,7 @@ type ItemAuditInput = {
 };
 
 // New function
-export async function createItemAudit(input: ItemAuditInput, userId: string) {
-  if (!userId) {
-    throw new Error("Unauthorized");
-  }
-
+export async function createItemAudit(input: ItemAuditInput) {
   const validatedData = auditItemSchema.parse(input);
 
   const [itemAudit] = await db
