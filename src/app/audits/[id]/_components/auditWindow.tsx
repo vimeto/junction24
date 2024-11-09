@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+import ReactMarkdown from 'react-markdown';
 
 declare global {
   interface Window {
@@ -279,9 +280,19 @@ export default function AuditWindow({ params }: PageProps) {
                         />
                       </Avatar>
                       <div
-                        className={`max-w-[80%] rounded-lg p-3 ${message.role === "user" ? "bg-[#2a2a2c]" : "bg-[#323234]"}`}
+                        className={`max-w-[80%] rounded-lg p-3 prose prose-invert ${message.role === "user" ? "bg-[#2a2a2c]" : "bg-[#323234]"}`}
                       >
-                        {message.text && <p>{message.text}</p>}
+                        {message.text && (
+                          <ReactMarkdown
+                            components={{
+                              p: ({ children }) => <p className="m-0">{children}</p>,
+                              pre: ({ children }) => <pre className="overflow-x-auto p-2 bg-[#1a1a1c] rounded">{children}</pre>,
+                              code: ({ children }) => <code className="bg-[#1a1a1c] px-1 rounded">{children}</code>,
+                            }}
+                          >
+                            {message.text}
+                          </ReactMarkdown>
+                        )}
                         {message.image && (
                           <img
                             src={message.image}

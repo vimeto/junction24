@@ -52,23 +52,23 @@ const auditTool = {
     description: "Generates a report stating that the item has been audited to the provided location.",
     parameters: {
       type: "object",
-      required: ["auditor_id", "item_id", "location_id", "audit_id"],
+      required: ["auditor_id", "item_id", "audit_id"],
       properties: {
         auditer_id: {
-          type: "string",
+          type: "integer",
           description: "Unique identifier for the auditor"
         },
         item_id: {
-          type: "string",
+          type: "integer",
           description: "Unique identifier for the item being audited"
         },
         location_id: {
-          type: "string",
+          type: "integer",
           description: "Unique identifier for the location"
         },
         audit_id: {
-          type: "string",
-          description: "Unique identifier for the audit"
+          type: "integer",
+          description: "Unique identifier for the audit. This is the audit ID!"
         },
         metadata: {
           type: "object",
@@ -113,12 +113,6 @@ const auditTool = {
 
 export async function POST(req: Request) {
   try {
-    // Authenticate user
-    const user = await auth();
-    if (!user.userId) {
-      return new NextResponse("Unauthorized", { status: 401 });
-    }
-
     // Validate request body
     const { text, imageUrl, location, previousMessages, auditUuid } = messageSchema.parse(
       await req.json()
@@ -129,6 +123,7 @@ export async function POST(req: Request) {
     });
 
     if (!audit) {
+      console.error("Audit not found", auditUuid);
       return new NextResponse("Audit not found", { status: 404 });
     }
 
@@ -187,6 +182,8 @@ export async function POST(req: Request) {
       });
     }
 
+    console.log("the last message", messages[messages.length - 1]);
+
     // Call OpenAI API with appropriate model
     const completion = await openai.chat.completions.create({
       messages,
@@ -201,13 +198,16 @@ export async function POST(req: Request) {
     let auditResult: { itemAuditId: number } | undefined;
     let aiResponse: string | null = null;
 
+    console.log("the response message", responseMessage);
+
     if (responseMessage?.tool_calls?.[0]) {
       // Handle the function call
       const functionCall = responseMessage.tool_calls[0];
       if (functionCall.function.name === 'audit_item_location') {
         const args = JSON.parse(functionCall.function.arguments);
+        console.log("the args", args);
         try {
-          auditResult = await createItemAudit(args, user.userId);
+          auditResult = await createItemAudit(args);
           console.log('Audit request payload:', args);
           aiResponse = "Audit created successfully.";
         } catch (error) {
@@ -224,22 +224,12 @@ export async function POST(req: Request) {
     }
 
     if (!aiResponse) {
+      console.error("No response from OpenAI");
       throw new Error("No response from OpenAI");
     }
 
-    // Get the item audit ID for this audit
-    const existingItemAudit = await db.query.itemAudits.findFirst({
-      where: eq(itemAudits.auditId, audit.id)
-    });
-
-    if (!existingItemAudit) {
-      return new NextResponse("Item audit not found", { status: 404 });
-    }
-
-    const chatItemAuditId = existingItemAudit.id;
-
     // After getting aiResponse, save assistant's message
-    const savedAssistantMessage = await createChat({
+    await createChat({
       auditUuid,
       sender: "assistant",
       chatText: aiResponse,

@@ -58,7 +58,10 @@ export async function buildChatContext(auditUuid: string): Promise<string> {
   }, {} as Record<string, ContextItem[]>);
 
   const notAuditedItems = await db.query.items.findMany({
-    where: notInArray(items.id, allItemIds),
+    where: and(
+      notInArray(items.id, allItemIds),
+      eq(items.organizationId, audit.organization?.id ?? 0)
+    ),
   });
 
   // Build context string
@@ -67,12 +70,14 @@ export async function buildChatContext(auditUuid: string): Promise<string> {
 - today's date: ${new Date().toISOString().split('T')[0]}
 - auditer: ${auditerName ?? "Unknown Auditor"}
 - auditer id: ${auditerId ?? "Unknown Auditor ID"}
+- audit id: ${audit.id}
 
 # organization
 - name: ${audit.organization?.name ?? "Unknown Organization"}
 
 # location
 - name: ${audit.location?.name ?? "Unknown Location"}
+- id: ${audit.location?.id ?? "Unknown Location ID"}
 - coordinates: ${audit.location?.latitude ?? "N/A"}, ${audit.location?.longitude ?? "N/A"}`;
 
   // Add items grouped by audit date
