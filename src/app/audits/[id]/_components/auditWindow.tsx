@@ -19,14 +19,13 @@ import AudioBar from "../audioBar";
 import TextInput from "../textBar";
 import { getCurrentLocation } from "~/utils/getLocation";
 
-interface Message {
+export interface Message {
   id?: number;
   text?: string;
   role: "user" | "assistant";
   image?: string;
   isLoading?: boolean;
 }
-
 
 interface PageProps {
   params: {

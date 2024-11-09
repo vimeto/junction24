@@ -2,15 +2,16 @@
 
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { RealtimeClient } from '@openai/realtime-api-beta';
-import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
+import { InputTextContentType, ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
 import { WavRecorder, WavStreamPlayer } from '~/lib/wavtools/index.js';
 import { instructions } from '~/lib/system_prompts/realtime_config';
 import { RealtimeEvent } from '../_types';
 import { env } from '~/env';
+import { Message } from '~/app/audits/[id]/_components/auditWindow';
 
 const OPENAI_RELAY_SERVER_URL = env.NEXT_PUBLIC_OPENAI_RELAY_SERVER_URL;
 
-export function useConversation() {
+export function useConversation({ initialMessages }: { initialMessages: Message[] }) {
   const [isConnected, setIsConnected] = useState(false);
   const [items, setItems] = useState<ItemType[]>([]);
 
@@ -42,12 +43,23 @@ export function useConversation() {
     await wavStreamPlayer.connect();
     await client.connect();
 
-    client.sendUserMessageContent([
-      {
+    let messageHistory: InputTextContentType[] = []
+    if (initialMessages.length > 0) {
+      const initialMessage = { type: `input_text` as const, text: `The following is the history of the previous conversations` }
+      const previousMessages = initialMessages.map((message) => ({
+        type: `input_text` as const,
+        text: `${message.role === "user" ? "User" : "Assistant"}: ${message.text}`
+      }));
+      const finalMessage = { type: `input_text` as const, text: `That was it! If there was a question, please answer it, otherwise answer with a neutral greeting` }
+      messageHistory = [initialMessage, ...previousMessages, finalMessage]
+    }
+    else {
+      messageHistory.push({
         type: `input_text`,
         text: `Hello!`,
-      },
-    ]);
+      })
+    }
+    client.sendUserMessageContent(messageHistory);
 
     if (client.getTurnDetectionType() === 'server_vad') {
       await wavRecorder.record((data) => client.appendInputAudio(data.mono));
