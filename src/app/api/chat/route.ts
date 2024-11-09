@@ -124,6 +124,14 @@ export async function POST(req: Request) {
       await req.json()
     );
 
+    const audit = await db.query.audits.findFirst({
+      where: eq(audits.uuid, auditUuid)
+    });
+
+    if (!audit) {
+      return new NextResponse("Audit not found", { status: 404 });
+    }
+
     // Load previous messages from database
     const dbMessages = await db
       .select({
@@ -133,7 +141,8 @@ export async function POST(req: Request) {
       .from(chats)
       .where(
         and(
-          isNotNull(chats.chatText)
+          isNotNull(chats.chatText),
+          eq(chats.auditId, audit.id)
         )
       )
       .orderBy(chats.createdAt);
@@ -216,14 +225,6 @@ export async function POST(req: Request) {
 
     if (!aiResponse) {
       throw new Error("No response from OpenAI");
-    }
-
-    const audit = await db.query.audits.findFirst({
-      where: eq(audits.uuid, auditUuid)
-    });
-
-    if (!audit) {
-      return new NextResponse("Audit not found", { status: 404 });
     }
 
     // Get the item audit ID for this audit
