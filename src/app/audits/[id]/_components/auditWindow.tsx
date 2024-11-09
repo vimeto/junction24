@@ -320,6 +320,7 @@ export default function AuditWindow({ params }: PageProps) {
                   fileInputRef={fileInputRef}
                   showCamera={showCamera}
                   setShowCamera={setShowCamera}
+                  handleImageUpload={handleImageUpload}
                 />
               ) : (
                 <TextInput
