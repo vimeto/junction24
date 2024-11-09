@@ -8,11 +8,9 @@ declare global {
     webkitSpeechRecognition: any;
   }
 }
-import { Button } from "~/components/ui/button";
 import { Card, CardContent, CardFooter } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { Mic, MicOff, Send, Camera, Keyboard, X } from "lucide-react";
 import useSpeechRecognition from "./_hooks/useSpeechRecognition";
 import useAudioVisualization from "./_hooks/useAudioVisualization";
 import { InlineCamera } from "./camera";
@@ -185,9 +183,6 @@ export default function ChatWindow() {
   };
 
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
-  const scrollToBottom = () => {
-    endOfChatsRef.current?.scrollIntoView({ behavior: "smooth" });
-  };
 
   useEffect(() => {
     if (
@@ -200,7 +195,6 @@ export default function ChatWindow() {
       const messagesHeight = messagesContainer.scrollHeight;
       // Determine if content overflows
       const isOverflowing = messagesHeight > screen.height;
-      console.log("isOverflowing", isOverflowing);
 
       if (isOverflowing) {
         // Scroll to the bottom
