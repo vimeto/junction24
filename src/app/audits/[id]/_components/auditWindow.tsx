@@ -52,6 +52,7 @@ export default function AuditWindow({ params }: PageProps) {
   const [isListening, setIsListening] = useState(true); // Start in audio mode by default
   const [inputText, setInputText] = useState("");
   const [showCamera, setShowCamera] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const endOfChatsRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -161,8 +162,9 @@ export default function AuditWindow({ params }: PageProps) {
 
   // Modified sendMessage function
   const handleSend = async () => {
-    if (inputText.trim()) {
+    if (inputText.trim() && !isLoading) {
       try {
+        setIsLoading(true);
         // Get user location
         const location = await getCurrentLocation();
 
@@ -209,7 +211,7 @@ export default function AuditWindow({ params }: PageProps) {
           { text: data.response, role: "assistant" },
         ]);
       } catch (error) {
-        console.error("Error getting location or sending message:", error);
+        console.error("Error sending message:", error);
         // Add error message
         setMessages((prevMessages) => [
           ...prevMessages,
@@ -218,6 +220,8 @@ export default function AuditWindow({ params }: PageProps) {
             role: "assistant",
           },
         ]);
+      } finally {
+        setIsLoading(false);
       }
     }
   };
@@ -319,6 +323,7 @@ export default function AuditWindow({ params }: PageProps) {
                   setIsListening={setIsListening}
                   showCamera={showCamera}
                   setShowCamera={setShowCamera}
+                  isLoading={isLoading}
                 />
               )}
             </div>

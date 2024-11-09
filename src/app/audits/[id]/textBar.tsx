@@ -15,6 +15,7 @@ interface TextInputProps {
   setIsListening: React.Dispatch<React.SetStateAction<boolean>>;
   showCamera: boolean;
   setShowCamera: React.Dispatch<React.SetStateAction<boolean>>;
+  isLoading: boolean;
 }
 
 const TextInput: React.FC<TextInputProps> = ({
