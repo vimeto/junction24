@@ -4,16 +4,12 @@ import { z } from "zod";
 import OpenAI from "openai";
 import { createItemAudit } from "~/server/actions/itemAudits";
 import { db } from "~/server/db";
-import { chats } from "~/server/db/schema";
+import { audits, chats } from "~/server/db/schema";
 import { and, isNotNull, eq } from "drizzle-orm";
 import { createChat } from "~/server/actions/chats";
 import { itemAudits } from "~/server/db/schema";
 import { buildChatContext } from "~/server/utils/chatContext";
-
-// Initialize OpenAI client
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
+import { openai } from "~/utils/openAIClient";
 
 // Updated schema to handle optional text and image
 const messageSchema = z.object({
@@ -215,7 +211,6 @@ export async function POST(req: Request) {
         }
       }
     } else {
-      // Handle normal responses
       aiResponse = responseMessage?.content ?? null;
     }
 
@@ -223,34 +218,35 @@ export async function POST(req: Request) {
       throw new Error("No response from OpenAI");
     }
 
-    // Check if itemAuditId exists
-    if (!itemAuditId) {
-      return new NextResponse("Item audit ID is required", { status: 400 });
+    const audit = await db.query.audits.findFirst({
+      where: eq(audits.uuid, auditUuid)
+    });
+
+    if (!audit) {
+      return new NextResponse("Audit not found", { status: 404 });
     }
 
     // Get the item audit ID for this audit
-    const existingItemAudit = await db
-      .select()
-      .from(itemAudits)
-      .where(eq(itemAudits.auditId, itemAuditId))
-      .limit(1);
+    const existingItemAudit = await db.query.itemAudits.findFirst({
+      where: eq(itemAudits.auditId, audit.id)
+    });
 
-    if (!existingItemAudit.length) {
+    if (!existingItemAudit) {
       return new NextResponse("Item audit not found", { status: 404 });
     }
 
-    const chatItemAuditId = existingItemAudit[0]!.id;
+    const chatItemAuditId = existingItemAudit.id;
 
     // After getting aiResponse, save assistant's message
     const savedAssistantMessage = await createChat({
-      itemAuditId: auditResult?.itemAuditId || chatItemAuditId,
+      auditUuid,
       sender: "assistant",
       chatText: aiResponse,
     });
 
     if (text || imageUrl) {
       await createChat({
-        itemAuditId: chatItemAuditId,
+        auditUuid,
         sender: "user",
         chatText: text || undefined,
         imageUrl: imageUrl || undefined,

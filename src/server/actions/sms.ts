@@ -3,29 +3,8 @@
 import { env } from "~/env";
 import { buildChatContext } from "../utils/chatContext";
 import { createChat } from "./chats";
-import OpenAI from "openai";
-
-function formatPhoneNumber(phone: string): string {
-  let cleaned = phone.replace(/[^\d+]/g, '');
-
-  // If number starts with 0, assume Finnish number and replace with +358
-  if (cleaned.startsWith('0')) {
-    cleaned = '+358' + cleaned.slice(1);
-  }
-
-  // If number doesn't start with +, assume Finnish number and add +358
-  if (!cleaned.startsWith('+')) {
-    cleaned = '+358' + cleaned;
-  }
-
-  // Validate the final format
-  const phoneRegex = /^\+\d{8,15}$/;
-  if (!phoneRegex.test(cleaned)) {
-    throw new Error('Invalid phone number format. Please provide a valid phone number.');
-  }
-
-  return cleaned;
-}
+import { formatPhoneNumber } from "../utils/numberHelpers";
+import { openai } from "~/utils/openAIClient";
 
 export async function sendSMS(to: string, name: string, auditUuid: string) {
   const username = env.SMS_USERNAME;
@@ -77,11 +56,6 @@ export async function sendSMS(to: string, name: string, auditUuid: string) {
   }
 }
 
-
-// Remove this later
-const openai = new OpenAI({
-apiKey: process.env.OPENAI_API_KEY,
-});
 export async function createFirstAuditMessage(auditUuid: string): Promise<void> {
   try {
     const context = await buildChatContext(auditUuid);
@@ -91,6 +65,7 @@ export async function createFirstAuditMessage(auditUuid: string): Promise<void> 
       model: "gpt-4o",
     });
     const responseMessage = completion.choices[0]?.message;
+
     const savedAssistantMessage = await createChat({
       auditUuid: auditUuid,
       sender: "assistant",

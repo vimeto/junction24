@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { AudioProcessorSrc } from './worklets/audio_processor.js';
 import { AudioAnalysis } from './analysis/audio_analysis.js';
 import { WavPacker } from './wav_packer.js';

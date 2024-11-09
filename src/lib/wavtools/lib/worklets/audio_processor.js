@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 const AudioProcessorWorklet = `
 class AudioProcessor extends AudioWorkletProcessor {
 

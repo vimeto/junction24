@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /**
  * Constants for help with visualization
  * Helps map frequency ranges from Fast Fourier Transform

@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 "use client";
 
 import React, { useRef, useState } from 'react';
@@ -55,7 +57,7 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
         onClientUploadComplete(result) {
             toast.dismiss("upload-begin");
             toast("Upload complete!");
-            
+
             if (result && result[0]) {
                 const imageUrl = result[0].url;
                 onImageUploaded?.(imageUrl);
@@ -95,7 +97,7 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
                 <div className="flex-1 relative overflow-hidden">
                     <div className="absolute inset-0">
                         {!image ? (
-                            <Camera 
+                            <Camera
                                 ref={camera}
                                 numberOfCamerasCallback={setNumberOfCameras}
                                 errorMessages={errorMessages}
@@ -108,10 +110,10 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
                                 isFullscreen={false}
                             />
                         ) : (
-                            <img 
-                                src={image} 
-                                alt='Preview' 
-                                className="h-full w-full object-cover transform scale-x-[-1]" 
+                            <img
+                                src={image}
+                                alt='Preview'
+                                className="h-full w-full object-cover transform scale-x-[-1]"
                             />
                         )}
                     </div>
@@ -142,7 +144,7 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
                         </div>
                     ) : (
                         <div className="h-full flex items-center justify-between px-4">
-                            <Button 
+                            <Button
                                 onClick={() => setImage(undefined)}
                                 variant="outline"
                                 size="icon"
@@ -150,8 +152,8 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
                             >
                                 Back
                             </Button>
-                            <Button 
-                                onClick={handleUpload} 
+                            <Button
+                                onClick={handleUpload}
                                 disabled={isUploading}
                                 variant="outline"
                                 size="icon"
@@ -165,4 +167,4 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
             </div>
         </div>
     );
-}; 
+};
