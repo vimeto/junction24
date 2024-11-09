@@ -9,13 +9,13 @@ declare global {
   }
 }
 import { Button } from "~/components/ui/button";
-import { Textarea } from "~/components/ui/textarea";
 import { Card, CardContent, CardFooter } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
-import { Mic, MicOff, Send, Camera, Keyboard } from "lucide-react";
+import { Mic, MicOff, Send, Camera, Keyboard, X } from "lucide-react";
 import useSpeechRecognition from "./_hooks/useSpeechRecognition";
 import useAudioVisualization from "./_hooks/useAudioVisualization";
+import { InlineCamera } from "./camera";
 import AudioBar from "./audioBar";
 import TextInput from "./textBar";
 
@@ -44,6 +44,7 @@ export default function ChatWindow() {
   } = useAudioVisualization();
   const [isListening, setIsListening] = useState(true); // Start in audio mode by default
   const [inputText, setInputText] = useState("");
+  const [showCamera, setShowCamera] = useState(false);
   const endOfChatsRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
@@ -62,6 +63,72 @@ export default function ChatWindow() {
     }
   };
 
+  const handleImageUpload = async (imageUrl: string) => {
+    // Add the image message to the chat
+    setMessages((prev) => [
+      ...prev,
+      {
+        sender: "user",
+        image: imageUrl,
+      },
+    ]);
+
+    // process the image using the AI
+    await handleSendImage(imageUrl);
+  };
+  const handleSendImage = async (imageUrl: string) => {
+    setMessages((prev) => [
+      ...prev,
+      {
+        text: "Analyzing image...",
+        sender: "ai",
+      },
+    ]);
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          imageUrl: imageUrl,
+        }),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(errorText || "Failed to analyze image");
+      }
+
+      const data = await response.json();
+
+      // Remove loading message and add AI response
+      setMessages((prev) => {
+        const withoutLoading = prev.slice(0, -1); // Remove loading message
+        return [
+          ...withoutLoading,
+          {
+            text: data.response,
+            sender: "ai",
+          },
+        ];
+      });
+    } catch (error) {
+      console.error("Error analyzing image:", error);
+
+      // Remove loading message and add error message
+      setMessages((prev) => {
+        const withoutLoading = prev.slice(0, -1);
+        return [
+          ...withoutLoading,
+          {
+            text: "Sorry, I encountered an error analyzing the image. Please try again.",
+            sender: "ai",
+          },
+        ];
+      });
+    }
+  };
   useEffect(() => {
     if (transcript) {
       setInputText(transcript);
@@ -193,8 +260,8 @@ export default function ChatWindow() {
               </div>
             </ScrollArea>
           </CardContent>
-          <CardFooter className="sticky bottom-0 z-10 w-full border-none p-2">
-            <div className="flex min-h-10 w-full items-center rounded-md bg-slate-800 bg-gradient-to-br p-2 shadow-lg">
+          <CardFooter className="sticky bottom-0 z-10 w-full border-gray-800 bg-[#1a1a1c] p-4">
+            <div className="flex min-h-12 w-full items-center space-x-2">
               {isListening ? (
                 <AudioBar
                   isListening={isListening}
@@ -203,6 +270,8 @@ export default function ChatWindow() {
                   toggleMute={toggleMute}
                   setIsListening={setIsListening}
                   fileInputRef={fileInputRef}
+                  showCamera={showCamera}
+                  setShowCamera={setShowCamera}
                 />
               ) : (
                 <TextInput
@@ -214,9 +283,19 @@ export default function ChatWindow() {
                   isMuted={isMuted}
                   toggleMute={toggleMute}
                   setIsListening={setIsListening}
+                  showCamera={showCamera}
+                  setShowCamera={setShowCamera}
                 />
               )}
             </div>
+            {showCamera && (
+              <div className="absolute bottom-full left-0 right-0">
+                <InlineCamera
+                  onClose={() => setShowCamera(false)}
+                  onImageUploaded={(imageUrl) => handleImageUpload(imageUrl)}
+                />
+              </div>
+            )}
           </CardFooter>
         </Card>
       </div>

@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { Textarea } from "~/components/ui/textarea";
 import { Button } from "~/components/ui/button";
-import { Mic, Send, Camera } from "lucide-react"; // Replace with actual icons
+import { Mic, Send, Camera, X } from "lucide-react"; // Replace with actual icons
 import { set } from "zod";
 
 interface TextInputProps {
@@ -13,6 +13,8 @@ interface TextInputProps {
   isListening: boolean;
   toggleMute: () => void;
   setIsListening: React.Dispatch<React.SetStateAction<boolean>>;
+  showCamera: boolean;
+  setShowCamera: React.Dispatch<React.SetStateAction<boolean>>;
 }
 
 const TextInput: React.FC<TextInputProps> = ({
@@ -21,9 +23,10 @@ const TextInput: React.FC<TextInputProps> = ({
   handleSend,
   handleInputChange,
   isListening,
-  isMuted,
   toggleMute,
   setIsListening,
+  showCamera,
+  setShowCamera,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -68,12 +71,21 @@ const TextInput: React.FC<TextInputProps> = ({
         </div>
       )}
 
-      <div className="flex w-full items-center space-x-2">
+      <div className="flex w-full items-center space-x-1">
         <Button
           size="icon"
-          className="bg-transparent text-white hover:bg-transparent hover:text-neutral-700"
+          onClick={() => setShowCamera(!showCamera)}
+          className={`border-none bg-transparent ${
+            showCamera
+              ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+              : "text-white hover:bg-transparent hover:text-neutral-700"
+          }`}
         >
-          <Camera className="h-5 w-5" />
+          {showCamera ? (
+            <X className="h-4 w-4" />
+          ) : (
+            <Camera className="h-4 w-4" />
+          )}
         </Button>
         <Button
           size="icon"
@@ -83,7 +95,7 @@ const TextInput: React.FC<TextInputProps> = ({
           }}
           className="bg-transparent text-white hover:bg-transparent hover:text-neutral-700"
         >
-          <Mic className="h-5 w-5" />
+          <Mic className="h-4 w-4" />
         </Button>
         {!isFocused ? (
           <Textarea
@@ -116,7 +128,7 @@ const TextInput: React.FC<TextInputProps> = ({
           }}
           className="bg-transparent text-white hover:bg-transparent hover:text-neutral-700"
         >
-          <Send className="h-5 w-5" />
+          <Send className="h-4 w-4" />
         </Button>
       </div>
     </div>
