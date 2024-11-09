@@ -3,6 +3,11 @@ import { NextResponse } from "next/server";
 import { z } from "zod";
 import OpenAI from "openai";
 import { createItemAudit } from "~/server/actions/itemAudits";
+import { db } from "~/server/db";
+import { chats } from "~/server/db/schema";
+import { and, isNotNull, eq } from "drizzle-orm";
+import { createChat } from "~/server/actions/chats";
+import { itemAudits } from "~/server/db/schema";
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -27,7 +32,8 @@ const messageSchema = z.object({
         image_url: z.object({ url: z.string() }).optional()
       }))
     ])
-  })).optional()
+  })).optional(),
+  itemAuditId: z.number().optional()
 }).refine(data => data.text || data.imageUrl, {
   message: "Either text or imageUrl must be provided"
 });
@@ -117,9 +123,22 @@ export async function POST(req: Request) {
     }
 
     // Validate request body
-    const { text, imageUrl, location, previousMessages } = messageSchema.parse(
+    const { text, imageUrl, location, previousMessages, itemAuditId } = messageSchema.parse(
       await req.json()
     );
+    // Load previous messages from database
+    const dbMessages = await db
+      .select({
+        sender: chats.sender,
+        chatText: chats.chatText,
+      })
+      .from(chats)
+      .where(
+        and(
+          isNotNull(chats.chatText)
+        )
+      )
+      .orderBy(chats.createdAt);
 
     // Initialize messages array with system message
     const messages: OpenAI.Chat.ChatCompletionMessageParam[] = [
@@ -131,7 +150,15 @@ export async function POST(req: Request) {
       }
     ];
 
-    // Add previous messages if they exist
+    // Add messages from database
+    dbMessages.forEach(msg => {
+      messages.push({
+        role: msg.sender === "user" ? "user" : "assistant",
+        content: msg.chatText || ""
+      });
+    });
+
+    // Add current conversation messages if they exist
     if (previousMessages?.length) {
       messages.push(...(previousMessages as OpenAI.Chat.ChatCompletionMessageParam[]));
     }
@@ -164,23 +191,18 @@ export async function POST(req: Request) {
 
     // Handle function calls from OpenAI
     const responseMessage = completion.choices[0]?.message;
+    let auditResult: { itemAuditId: number } | undefined;
+    let aiResponse: string | null = null;
 
     if (responseMessage?.tool_calls?.[0]) {
       // Handle the function call
       const functionCall = responseMessage.tool_calls[0];
       if (functionCall.function.name === 'audit_item_location') {
         const args = JSON.parse(functionCall.function.arguments);
-
-        console.log('Audit request payload:', args);
-
         try {
-          // Call the action directly instead of going through the API
-          const result = await createItemAudit(args, user.userId);
-
-          return NextResponse.json({
-            success: true,
-            response: `Audit created successfully with ID: ${result.itemAuditId}`
-          });
+          auditResult = await createItemAudit(args, user.userId);
+          console.log('Audit request payload:', args);
+          aiResponse = "Audit created successfully.";
         } catch (error) {
           console.error('Failed to create audit:', error);
           throw new Error(
@@ -190,18 +212,53 @@ export async function POST(req: Request) {
           );
         }
       }
+    } else {
+      // Handle normal responses
+      aiResponse = responseMessage?.content ?? null;
     }
-
-    // Handle normal responses
-    const aiResponse = responseMessage?.content;
 
     if (!aiResponse) {
       throw new Error("No response from OpenAI");
     }
 
+    // Check if itemAuditId exists
+    if (!itemAuditId) {
+      return new NextResponse("Item audit ID is required", { status: 400 });
+    }
+
+    // Get the item audit ID for this audit
+    const existingItemAudit = await db
+      .select()
+      .from(itemAudits)
+      .where(eq(itemAudits.auditId, itemAuditId))
+      .limit(1);
+
+    if (!existingItemAudit.length) {
+      return new NextResponse("Item audit not found", { status: 404 });
+    }
+
+    const chatItemAuditId = existingItemAudit[0]!.id;
+
+    // After getting aiResponse, save assistant's message
+    const savedAssistantMessage = await createChat({
+      itemAuditId: auditResult?.itemAuditId || chatItemAuditId,
+      sender: "assistant",
+      chatText: aiResponse,
+    });
+
+    if (text || imageUrl) {
+      await createChat({
+        itemAuditId: chatItemAuditId,
+        sender: "user",
+        chatText: text || undefined,
+        imageUrl: imageUrl || undefined,
+      });
+    }
+
     return NextResponse.json({
       success: true,
-      response: aiResponse
+      response: aiResponse,
+      auditId: auditResult?.itemAuditId
     });
 
   } catch (error) {

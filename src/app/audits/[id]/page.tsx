@@ -175,6 +175,8 @@ export default function ChatWindow() {
         ]);
         setInputText("");
 
+        const audit_id = 5;
+
         // Call the API route
         const response = await fetch("/api/chat", {
           method: "POST",
@@ -184,7 +186,8 @@ export default function ChatWindow() {
           body: JSON.stringify({ 
             text: inputText, 
             location: location,
-            previousMessages 
+            previousMessages,
+            itemAuditId: audit_id
           }),
         });
 
