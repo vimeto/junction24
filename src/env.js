@@ -23,6 +23,7 @@ export const env = createEnv({
   client: {
     // NEXT_PUBLIC_CLIENTVAR: z.string(),
     NEXT_PUBLIC_APP_URL: z.string().url(),
+    NEXT_PUBLIC_OPENAI_RELAY_SERVER_URL: z.string().url(),
   },
 
   /**
@@ -35,7 +36,7 @@ export const env = createEnv({
     SMS_USERNAME: process.env.SMS_USERNAME,
     SMS_PASSWORD: process.env.SMS_PASSWORD,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
-    // NEXT_PUBLIC_CLIENTVAR: process.env.NEXT_PUBLIC_CLIENTVAR,
+    NEXT_PUBLIC_OPENAI_RELAY_SERVER_URL: process.env.NEXT_PUBLIC_OPENAI_RELAY_SERVER_URL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation. This is especially
