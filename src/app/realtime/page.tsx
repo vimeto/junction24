@@ -26,148 +26,109 @@ import { RealtimeLayout } from './_components/Layout';
 import { Visualizer } from './_components/Visualizer';
 import { EventList } from './_components/EventList';
 import { ConversationList } from './_components/ConversationList';
+import { formatTime } from './_utils/formatTime';
+import { useConversation } from './_hooks/useConversation';
 
 export default function RealtimePage() {
-  /**
-   * Ask user for API Key
-   * If we're using the local relay server, we don't need this
-   */
-  const apiKey = LOCAL_RELAY_SERVER_URL
-    ? ''
-    : localStorage.getItem('tmp::voice_api_key') ||
-      prompt('OpenAI API Key') ||
-      '';
-  if (apiKey !== '') {
-    localStorage.setItem('tmp::voice_api_key', apiKey);
-  }
-
-  /**
-   * Instantiate:
-   * - WavRecorder (speech input)
-   * - WavStreamPlayer (speech output)
-   * - RealtimeClient (API client)
-   */
-  const wavRecorderRef = useRef<WavRecorder>(
-    new WavRecorder({ sampleRate: 24000 })
-  );
-  const wavStreamPlayerRef = useRef<WavStreamPlayer>(
-    new WavStreamPlayer({ sampleRate: 24000 })
-  );
-  const clientRef = useRef<RealtimeClient>(
-    new RealtimeClient(
-      LOCAL_RELAY_SERVER_URL
-        ? { url: LOCAL_RELAY_SERVER_URL }
-        : {
-            apiKey: apiKey,
-            dangerouslyAllowAPIKeyInBrowser: true,
-          }
-    )
-  );
-
-  /**
-   * References for
-   * - Rendering audio visualization (canvas)
-   * - Autoscrolling event logs
-   * - Timing delta for event log displays
-   */
   const clientCanvasRef = useRef<HTMLCanvasElement>(null);
   const serverCanvasRef = useRef<HTMLCanvasElement>(null);
   const eventsScrollHeightRef = useRef(0);
   const eventsScrollRef = useRef<HTMLDivElement>(null);
   const startTimeRef = useRef<string>(new Date().toISOString());
 
-  /**
-   * All of our variables for displaying application state
-   * - items are all conversation items (dialog)
-   * - realtimeEvents are event logs, which can be expanded
-   * - memoryKv is for set_memory() function
-   * - coords, marker are for get_weather() function
-   */
-  const [items, setItems] = useState<ItemType[]>([]);
-  const [realtimeEvents, setRealtimeEvents] = useState<RealtimeEvent[]>([]);
-  const [expandedEvents, setExpandedEvents] = useState<{
-    [key: string]: boolean;
-  }>({});
-  const [isConnected, setIsConnected] = useState(false);
+  const {
+    isConnected,
+    items,
+    wavRecorderRef,
+    wavStreamPlayerRef,
+    clientRef,
+    connect,
+    disconnect,
+    deleteItem,
+    setItems,
+    realtimeEvents,
+    expandedEvents,
+    setExpandedEvents,
+  } = useConversation();
 
-  /**
-   * Utility for formatting the timing of logs
-   */
-  const formatTime = useCallback((timestamp: string) => {
-    const startTime = startTimeRef.current;
-    const t0 = new Date(startTime).valueOf();
-    const t1 = new Date(timestamp).valueOf();
-    const delta = t1 - t0;
-    const hs = Math.floor(delta / 10) % 100;
-    const s = Math.floor(delta / 1000) % 60;
-    const m = Math.floor(delta / 60_000) % 60;
-    const pad = (n: number) => {
-      let s = n + '';
-      while (s.length < 2) {
-        s = '0' + s;
+  const formatTimeWithRef = useCallback((timestamp: string) => {
+    return formatTime(startTimeRef.current, timestamp);
+  }, []);
+
+  useEffect(() => {
+    let isLoaded = true;
+    let animationFrameId: number;
+
+    const wavRecorder = wavRecorderRef.current;
+    const clientCanvas = clientCanvasRef.current;
+    let clientCtx: CanvasRenderingContext2D | null = null;
+
+    const wavStreamPlayer = wavStreamPlayerRef.current;
+    const serverCanvas = serverCanvasRef.current;
+    let serverCtx: CanvasRenderingContext2D | null = null;
+
+    const render = () => {
+      if (!isLoaded || !isConnected) return;
+
+      if (clientCanvas) {
+        if (!clientCanvas.width || !clientCanvas.height) {
+          clientCanvas.width = clientCanvas.offsetWidth;
+          clientCanvas.height = clientCanvas.offsetHeight;
+        }
+        clientCtx = clientCtx || clientCanvas.getContext('2d');
+        if (clientCtx) {
+          clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
+          const result = wavRecorder.recording
+            ? wavRecorder.getFrequencies('voice')
+            : { values: new Float32Array([0]) };
+          WavRenderer.drawBars(
+            clientCanvas,
+            clientCtx,
+            result.values,
+            '#0099ff',
+            10,
+            0,
+            8
+          );
+        }
       }
-      return s;
+      if (serverCanvas) {
+        if (!serverCanvas.width || !serverCanvas.height) {
+          serverCanvas.width = serverCanvas.offsetWidth;
+          serverCanvas.height = serverCanvas.offsetHeight;
+        }
+        serverCtx = serverCtx || serverCanvas.getContext('2d');
+        if (serverCtx) {
+          serverCtx.clearRect(0, 0, serverCanvas.width, serverCanvas.height);
+          const result = wavStreamPlayer.analyser
+            ? wavStreamPlayer.getFrequencies('voice')
+            : { values: new Float32Array([0]) };
+          WavRenderer.drawBars(
+            serverCanvas,
+            serverCtx,
+            result.values,
+            '#009900',
+            10,
+            0,
+            8
+          );
+        }
+      }
+
+      animationFrameId = window.requestAnimationFrame(render);
     };
-    return `${pad(m)}:${pad(s)}.${pad(hs)}`;
-  }, []);
 
-  /**
-   * Connect to conversation:
-   * WavRecorder taks speech input, WavStreamPlayer output, client is API client
-   */
-  const connectConversation = useCallback(async () => {
-    const client = clientRef.current;
-    const wavRecorder = wavRecorderRef.current;
-    const wavStreamPlayer = wavStreamPlayerRef.current;
-
-    // Set state variables
-    startTimeRef.current = new Date().toISOString();
-    setIsConnected(true);
-    setRealtimeEvents([]);
-    setItems(client.conversation.getItems());
-
-    // Connect to microphone
-    await wavRecorder.begin();
-
-    // Connect to audio output
-    await wavStreamPlayer.connect();
-
-    // Connect to realtime API
-    await client.connect();
-    client.sendUserMessageContent([
-      {
-        type: `input_text`,
-        text: `Hello!`,
-      },
-    ]);
-
-    if (client.getTurnDetectionType() === 'server_vad') {
-      await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+    if (isConnected) {
+      render();
     }
-  }, []);
 
-  /**
-   * Disconnect and reset conversation state
-   */
-  const disconnectConversation = useCallback(async () => {
-    setIsConnected(false);
-    setRealtimeEvents([]);
-    setItems([]);
-
-    const client = clientRef.current;
-    client.disconnect();
-
-    const wavRecorder = wavRecorderRef.current;
-    await wavRecorder.end();
-
-    const wavStreamPlayer = wavStreamPlayerRef.current;
-    await wavStreamPlayer.interrupt();
-  }, []);
-
-  const deleteConversationItem = useCallback(async (id: string) => {
-    const client = clientRef.current;
-    client.deleteItem(id);
-  }, []);
+    return () => {
+      isLoaded = false;
+      if (animationFrameId) {
+        cancelAnimationFrame(animationFrameId);
+      }
+    };
+  }, [isConnected]);
 
   /**
    * Auto-scroll the event logs
@@ -198,137 +159,6 @@ export default function RealtimePage() {
   }, [items]);
 
   /**
-   * Set up render loops for the visualization canvas
-   */
-  useEffect(() => {
-    let isLoaded = true;
-
-    const wavRecorder = wavRecorderRef.current;
-    const clientCanvas = clientCanvasRef.current;
-    let clientCtx: CanvasRenderingContext2D | null = null;
-
-    const wavStreamPlayer = wavStreamPlayerRef.current;
-    const serverCanvas = serverCanvasRef.current;
-    let serverCtx: CanvasRenderingContext2D | null = null;
-
-    const render = () => {
-      if (isLoaded) {
-        if (clientCanvas) {
-          if (!clientCanvas.width || !clientCanvas.height) {
-            clientCanvas.width = clientCanvas.offsetWidth;
-            clientCanvas.height = clientCanvas.offsetHeight;
-          }
-          clientCtx = clientCtx || clientCanvas.getContext('2d');
-          if (clientCtx) {
-            clientCtx.clearRect(0, 0, clientCanvas.width, clientCanvas.height);
-            const result = wavRecorder.recording
-              ? wavRecorder.getFrequencies('voice')
-              : { values: new Float32Array([0]) };
-            WavRenderer.drawBars(
-              clientCanvas,
-              clientCtx,
-              result.values,
-              '#0099ff',
-              10,
-              0,
-              8
-            );
-          }
-        }
-        if (serverCanvas) {
-          if (!serverCanvas.width || !serverCanvas.height) {
-            serverCanvas.width = serverCanvas.offsetWidth;
-            serverCanvas.height = serverCanvas.offsetHeight;
-          }
-          serverCtx = serverCtx || serverCanvas.getContext('2d');
-          if (serverCtx) {
-            serverCtx.clearRect(0, 0, serverCanvas.width, serverCanvas.height);
-            const result = wavStreamPlayer.analyser
-              ? wavStreamPlayer.getFrequencies('voice')
-              : { values: new Float32Array([0]) };
-            WavRenderer.drawBars(
-              serverCanvas,
-              serverCtx,
-              result.values,
-              '#009900',
-              10,
-              0,
-              8
-            );
-          }
-        }
-        window.requestAnimationFrame(render);
-      }
-    };
-    render();
-
-    return () => {
-      isLoaded = false;
-    };
-  }, []);
-
-  /**
-   * Core RealtimeClient and audio capture setup
-   * Set all of our instructions, tools, events and more
-   */
-  useEffect(() => {
-    // Get refs
-    const wavStreamPlayer = wavStreamPlayerRef.current;
-    const client = clientRef.current;
-
-    // Set instructions
-    client.updateSession({ instructions: instructions });
-    // Set transcription, otherwise we don't get user transcriptions back
-    client.updateSession({ input_audio_transcription: { model: 'whisper-1' } });
-
-    client.updateSession({ turn_detection: { type: 'server_vad' } });
-
-    // handle realtime events from client + server for event logging
-    client.on('realtime.event', (realtimeEvent: RealtimeEvent) => {
-      setRealtimeEvents((realtimeEvents) => {
-        const lastEvent = realtimeEvents[realtimeEvents.length - 1];
-        if (lastEvent?.event.type === realtimeEvent.event.type) {
-          // if we receive multiple events in a row, aggregate them for display purposes
-          lastEvent.count = (lastEvent.count || 0) + 1;
-          return realtimeEvents.slice(0, -1).concat(lastEvent);
-        } else {
-          return realtimeEvents.concat(realtimeEvent);
-        }
-      });
-    });
-    client.on('error', (event: any) => console.error(event));
-    client.on('conversation.interrupted', async () => {
-      const trackSampleOffset = await wavStreamPlayer.interrupt();
-      if (trackSampleOffset?.trackId) {
-        const { trackId, offset } = trackSampleOffset;
-        await client.cancelResponse(trackId, offset);
-      }
-    });
-    client.on('conversation.updated', async ({ item, delta }: any) => {
-      const items = client.conversation.getItems();
-      if (delta?.audio) {
-        wavStreamPlayer.add16BitPCM(delta.audio, item.id);
-      }
-      if (item.status === 'completed' && item.formatted.audio?.length) {
-        const wavFile = await WavRecorder.decode(
-          item.formatted.audio,
-          24000,
-          24000
-        );
-        item.formatted.file = wavFile;
-      }
-      setItems(items);
-    });
-
-    setItems(client.conversation.getItems());
-
-    return () => {
-      // cleanup; resets to defaults
-      client.reset();
-    };
-  }, []);
-
-  /**
    * Render the application
    */
   return (
@@ -349,19 +179,19 @@ export default function RealtimePage() {
               [id]: !prev[id]
             }));
           }}
-          formatTime={formatTime}
+          formatTime={formatTimeWithRef}
         />
       }
       conversation={
         <ConversationList
           items={items}
-          onDelete={deleteConversationItem}
+          onDelete={deleteItem}
         />
       }
       connectButton={
         <Button
           variant={isConnected ? "destructive" : "default"}
-          onClick={isConnected ? disconnectConversation : connectConversation}
+          onClick={isConnected ? disconnect : connect}
         >
           {isConnected ? 'Disconnect' : 'Connect'}
         </Button>

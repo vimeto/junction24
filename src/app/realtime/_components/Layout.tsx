@@ -3,13 +3,11 @@ import { ScrollArea } from "~/components/ui/scroll-area";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "~/components/ui/tabs";
 
 export function RealtimeLayout({
-  children,
   visualizer,
   events,
   conversation,
   connectButton
 }: {
-  children: React.ReactNode;
   visualizer: React.ReactNode;
   events: React.ReactNode;
   conversation: React.ReactNode;

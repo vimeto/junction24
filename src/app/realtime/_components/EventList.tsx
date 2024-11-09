@@ -4,6 +4,7 @@ import {
   CollapsibleContent,
   CollapsibleTrigger,
 } from "~/components/ui/collapsible";
+import { type RealtimeEvent } from "../_types";
 
 export function EventList({
   events,
@@ -34,7 +35,7 @@ export function EventList({
         >
           <CollapsibleTrigger className="flex items-center justify-between w-full p-2 hover:bg-muted rounded-md">
             <div className="flex items-center gap-2">
-              <Badge variant={realtimeEvent.source === 'error' ? 'destructive' : 'secondary'}>
+              <Badge variant={realtimeEvent.source === 'client' ? 'secondary' : 'destructive'}>
                 {realtimeEvent.source}
               </Badge>
               <span className="text-sm">{realtimeEvent.event.type}</span>
