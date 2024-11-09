@@ -111,6 +111,7 @@ export const audits = createTable(
     uuid: varchar("uuid", { length: 36 }).notNull().unique(),
     organizationId: integer("organization_id").references(() => organizations.id),
     auditerId: integer("auditer_id").references(() => auditers.id),
+    locationId: integer("location_id").references(() => locations.id).notNull(),
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
       .notNull(),
@@ -213,6 +214,10 @@ export const auditsRelations = relations(audits, ({ one, many }) => ({
     fields: [audits.auditerId],
     references: [auditers.id],
   }),
+  location: one(locations, {
+    fields: [audits.locationId],
+    references: [locations.id],
+  }),
   itemAudits: many(itemAudits),
 }));
 
@@ -222,6 +227,7 @@ export const locationsRelations = relations(locations, ({ one, many }) => ({
     references: [organizations.id],
   }),
   itemAudits: many(itemAudits),
+  audits: many(audits),
 }));
 
 export const organizationRolesRelations = relations(organizationRoles, ({ one }) => ({
