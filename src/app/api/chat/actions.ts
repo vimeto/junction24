@@ -2,12 +2,11 @@ import { and } from "drizzle-orm";
 import { db } from "~/server/db";
 import { audits, chats } from "~/server/db/schema";
 import { eq, isNotNull } from "drizzle-orm";
-import { NextResponse } from "next/server";
 import { ChatPayload } from "./schema";
 import { openai } from "~/utils/openAIClient";
 import OpenAI from "openai";
 import { imagePrompt, systemPrompt } from "./prompts";
-import { auditTool } from "./tools";
+import { auditTool, imageKeywordExtractionTool } from "./tools";
 import { createItemAudit } from "~/server/actions/itemAudits";
 import { createChat } from "~/server/actions/chats";
 
@@ -74,7 +73,7 @@ const processChat = async (params: ChatPayload) => {
     messages,
     model: "gpt-4o",
     max_tokens: 500,
-    tools: [auditTool],
+    tools: [auditTool, imageKeywordExtractionTool],
     tool_choice: "auto",
   });
 
@@ -98,6 +97,9 @@ const processChat = async (params: ChatPayload) => {
             : "Failed to create audit"
         );
       }
+    } else if (functionCall.function.name === 'extract_image_keywords') {
+      const args = JSON.parse(functionCall.function.arguments);
+      aiResponse = `Extracted these keywords from the image:\n${Object.entries(args).map(([key, value]) => `${key}: ${value}`).join("\n")}`;
     }
   } else {
     aiResponse = responseMessage?.content ?? null;

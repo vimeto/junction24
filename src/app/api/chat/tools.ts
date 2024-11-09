@@ -65,4 +65,38 @@ const auditTool = {
   }
 } as const;
 
-export { auditTool };
+const imageKeywordExtractionTool = {
+  type: "function" as const,
+  function: {
+    name: "extract_image_keywords",
+    description: "Extracts keywords from an image.",
+    parameters: {
+      type: "object",
+      properties: {
+        serial_number: {
+          type: "string",
+          description: "Serial number of the item if applicable"
+        },
+        condition: {
+          type: "string",
+          description: "Condition of the item in two words if applicable"
+        },
+        estimated_age: {
+          type: "number",
+          description: "Estimated age of the item in years if applicable"
+        },
+        keywords: {
+          type: "array",
+          description: "Keywords extracted from the image",
+          items: {
+            type: "string"
+          }
+        }
+      },
+      additionalProperties: true
+    }
+  }
+} as const;
+
+
+export { auditTool, imageKeywordExtractionTool };
