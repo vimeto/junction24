@@ -20,7 +20,7 @@ import { getCurrentLocation } from "~/utils/getLocation";
 
 interface Message {
   text?: string;
-  sender: "user" | "ai";
+  role: "user" | "assistant";
   image?: string;
 }
 
@@ -28,7 +28,7 @@ export default function ChatWindow() {
   const [messages, setMessages] = useState<Message[]>([
     {
       text: "Welcome to Tech Maintenance Support. How can I assist you today?",
-      sender: "ai",
+      role: "assistant",
     },
   ]);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
@@ -67,7 +67,7 @@ export default function ChatWindow() {
     setMessages((prev) => [
       ...prev,
       {
-        sender: "user",
+        role: "user",
         image: imageUrl,
       },
     ]);
@@ -80,7 +80,7 @@ export default function ChatWindow() {
       ...prev,
       {
         text: "Analyzing image...",
-        sender: "ai",
+        role: "assistant",
       },
     ]);
     try {
@@ -108,7 +108,7 @@ export default function ChatWindow() {
           ...withoutLoading,
           {
             text: data.response,
-            sender: "ai",
+            role: "assistant",
           },
         ];
       });
@@ -122,7 +122,7 @@ export default function ChatWindow() {
           ...withoutLoading,
           {
             text: "Sorry, I encountered an error analyzing the image. Please try again.",
-            sender: "ai",
+            role: "assistant",
           },
         ];
       });
@@ -158,16 +158,6 @@ export default function ChatWindow() {
         // Get user location
         const location = await getCurrentLocation();
 
-        // Define metadata (can be dynamically set in the future)
-        const metadata = {
-          latitude: location.latitude,
-          longitude: location.longitude,
-          // additional metadata fields can be added here
-        };
-
-        // Add metadata to the user message
-        const textMetadata = addMetadata(metadata);
-
         // Add user message immediately
         const newMessage = { text: inputText, sender: "user" };
         setMessages([
@@ -175,7 +165,7 @@ export default function ChatWindow() {
           {
             ...newMessage,
             text: newMessage.text || "",
-            sender: newMessage.sender as "user" | "ai",
+            role: newMessage.sender as "user" | "assistant",
           },
         ]);
         setInputText("");
@@ -186,7 +176,7 @@ export default function ChatWindow() {
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ text: inputText, metadata: textMetadata }),
+          body: JSON.stringify({ text: inputText, location: location }),
         });
 
         if (!response.ok) {
@@ -198,7 +188,7 @@ export default function ChatWindow() {
         // Add AI response
         setMessages((prevMessages) => [
           ...prevMessages,
-          { text: data.response, sender: "ai" },
+          { text: data.response, role: "assistant" },
         ]);
       } catch (error) {
         console.error("Error getting location or sending message:", error);
@@ -207,7 +197,7 @@ export default function ChatWindow() {
           ...prevMessages,
           {
             text: "Sorry, I encountered an error. Please try again.",
-            sender: "ai",
+            role: "assistant",
           },
         ]);
       }
@@ -250,25 +240,25 @@ export default function ChatWindow() {
                 {messages.map((message, index) => (
                   <div
                     key={index}
-                    className={`flex ${message.sender === "user" ? "justify-end" : "justify-start"}`}
+                    className={`flex ${message.role === "user" ? "justify-end" : "justify-start"}`}
                   >
                     <div
-                      className={`flex items-end space-x-2 ${message.sender === "user" ? "flex-row-reverse space-x-reverse" : "flex-row"}`}
+                      className={`flex items-end space-x-2 ${message.role === "user" ? "flex-row-reverse space-x-reverse" : "flex-row"}`}
                     >
                       <Avatar className="h-8 w-8">
                         <AvatarFallback>
-                          {message.sender === "user" ? "U" : "A"}
+                          {message.role === "user" ? "U" : "A"}
                         </AvatarFallback>
                         <AvatarImage
                           src={
-                            message.sender === "user"
+                            message.role === "user"
                               ? "https://api.dicebear.com/7.x/avataaars/svg?seed=user"
                               : "https://api.dicebear.com/7.x/bottts/svg?seed=ai"
                           }
                         />
                       </Avatar>
                       <div
-                        className={`max-w-[80%] rounded-lg p-3 ${message.sender === "user" ? "bg-[#2a2a2c]" : "bg-[#323234]"}`}
+                        className={`max-w-[80%] rounded-lg p-3 ${message.role === "user" ? "bg-[#2a2a2c]" : "bg-[#323234]"}`}
                       >
                         {message.text && <p>{message.text}</p>}
                         {message.image && (
