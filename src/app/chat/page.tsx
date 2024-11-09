@@ -44,7 +44,8 @@ export default function ChatWindow() {
   } = useAudioVisualization();
   const [isListening, setIsListening] = useState(true); // Start in audio mode by default
   const [inputText, setInputText] = useState("");
-  const textareaRef = useRef<HTMLTextAreaElement | null>(null);
+  const endOfChatsRef = useRef<HTMLDivElement | null>(null);
+  const messagesContainerRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     if (isListening && !isMuted) {
@@ -117,19 +118,34 @@ export default function ChatWindow() {
   };
 
   const scrollAreaRef = useRef<HTMLDivElement | null>(null);
+  const scrollToBottom = () => {
+    endOfChatsRef.current?.scrollIntoView({ behavior: "smooth" });
+  };
 
+  useEffect(() => {
+    if (
+      scrollAreaRef.current &&
+      messagesContainerRef.current &&
+      endOfChatsRef.current
+    ) {
+      const messagesContainer = messagesContainerRef.current;
+      // Total height of all messages
+      const messagesHeight = messagesContainer.scrollHeight;
+      // Determine if content overflows
+      const isOverflowing = messagesHeight > screen.height;
+      console.log("isOverflowing", isOverflowing);
+
+      if (isOverflowing) {
+        // Scroll to the bottom
+        endOfChatsRef.current.scrollIntoView({ behavior: "smooth" });
+      }
+    }
+  }, [messages]);
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
     }
   }, [messages]);
-
-  const handleInput = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = "1px";
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`; // Adjust height to fit content
-    }
-  };
 
   return (
     <>
@@ -137,7 +153,7 @@ export default function ChatWindow() {
         <Card className="z-0 flex min-h-screen w-full max-w-md flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
           <CardContent className="flex-1 p-0">
             <ScrollArea className="h-full" ref={scrollAreaRef}>
-              <div className="space-y-4 p-4">
+              <div className="space-y-4 p-4" ref={messagesContainerRef}>
                 {messages.map((message, index) => (
                   <div
                     key={index}
@@ -173,11 +189,12 @@ export default function ChatWindow() {
                     </div>
                   </div>
                 ))}
+                <div ref={endOfChatsRef} />
               </div>
             </ScrollArea>
           </CardContent>
           <CardFooter className="sticky bottom-0 z-10 w-full border-none p-2">
-            <div className="from-dark-700 to-dark-900 flex min-h-10 w-full items-center rounded-md bg-slate-800 bg-gradient-to-br p-2 shadow-lg">
+            <div className="flex min-h-10 w-full items-center rounded-md bg-slate-800 bg-gradient-to-br p-2 shadow-lg">
               {isListening ? (
                 <AudioBar
                   isListening={isListening}
@@ -193,7 +210,6 @@ export default function ChatWindow() {
                   setInputText={setInputText}
                   handleSend={handleSend}
                   handleInputChange={handleInputChange}
-                  textareaRef={textareaRef}
                   isListening={isListening}
                   isMuted={isMuted}
                   toggleMute={toggleMute}
