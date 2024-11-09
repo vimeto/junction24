@@ -3,7 +3,9 @@
 import { db } from './index';
 import { items, locations, organizations } from './schema';
 
-const ITEMS_DATA = [
+type ItemData = typeof items.$inferInsert;
+
+const ITEMS_DATA: ItemData[] = [
     {
       identifier: 'PUMP-001',
       itemType: 'item',
@@ -118,7 +120,10 @@ async function seedItemsAndLocations() {
       })
       .returning();
 
-    console.log('Created organization:', organization.name);
+    console.log('Created organization:', organization?.name);
+    if (!organization) {
+      throw new Error('Failed to create organization');
+    }
 
     // Create locations
     const createdLocations = await Promise.all(
@@ -138,11 +143,11 @@ async function seedItemsAndLocations() {
 
     // Create items
     const createdItems = await Promise.all(
-      ITEMS_DATA.map(async (itemData) => {
-          const [item] = await db
-              .insert(items)
-              .values({ ...itemData, organizationId: organization.id })
-              .returning();
+      ITEMS_DATA.map(async (itemData: ItemData) => {
+        const [item] = await db
+          .insert(items)
+          .values({ ...itemData, organizationId: organization.id })
+          .returning();
         return item;
       })
     );

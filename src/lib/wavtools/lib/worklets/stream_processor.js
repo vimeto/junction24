@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 export const StreamProcessorWorklet = `
 class StreamProcessor extends AudioWorkletProcessor {
   constructor() {

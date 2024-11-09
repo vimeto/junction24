@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { StreamProcessorSrc } from './worklets/stream_processor.js';
 import { AudioAnalysis } from './analysis/audio_analysis.js';
 

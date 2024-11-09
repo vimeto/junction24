@@ -11,7 +11,7 @@ import { Input } from "~/components/ui/input";
 import { Label } from "~/components/ui/label";
 import { useState } from "react";
 import { type LocationWithItems } from "~/server/queries/organizations";
-import { sendSMS } from "~/server/actions/sms";
+import { createFirstAuditMessage, sendSMS } from "~/server/actions/sms";
 import { toast } from "sonner";
 import { createAuditWithAuditer } from "~/server/actions/audits";
 
@@ -50,7 +50,7 @@ export function RequestAuditModal({
 
   const handleSubmit = async () => {
     if (!location) return;
-
+    const auditUuids: string[] = [];
     setIsSubmitting(true);
     try {
       // Create audits and send SMS for each auditor
@@ -67,7 +67,7 @@ export function RequestAuditModal({
             locationId: location.id,
             organizationId: location.organizationId,
           });
-
+          auditUuids.push(audit.uuid);
           // Send SMS with audit link
           await sendSMS(auditor.phone, auditor.name, audit.uuid);
         })
@@ -75,6 +75,11 @@ export function RequestAuditModal({
 
       toast.success("Audit requests sent successfully!");
       onOpenChange(false);
+      
+      // Send context to the AI
+      auditUuids.forEach(async (auditUuid) => {
+        await createFirstAuditMessage(auditUuid);
+      });
     } catch (error) {
       console.error(error);
       toast.error(error instanceof Error ? error.message : "Failed to send audit requests");

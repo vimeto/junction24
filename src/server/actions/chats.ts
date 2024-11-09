@@ -1,9 +1,10 @@
 import { z } from "zod";
 import { db } from "~/server/db";
-import { chats } from "~/server/db/schema";
+import { chats, audits } from "~/server/db/schema";
+import { eq } from "drizzle-orm";
 
 const chatSchema = z.object({
-  itemAuditId: z.number().optional(),
+  auditUuid: z.string(),
   sender: z.enum(["user", "assistant"]),
   chatText: z.string().optional(),
   imageUrl: z.string().optional(),
@@ -14,10 +15,18 @@ type ChatInput = z.infer<typeof chatSchema>;
 export async function createChat(input: ChatInput) {
   const validatedData = chatSchema.parse(input);
 
+  const audit = await db.query.audits.findFirst({
+    where: (model, { eq }) => eq(model.uuid, validatedData.auditUuid),
+  });
+  
+  if (!audit) {
+    throw new Error("Audit not found");
+  }
+  
   const [savedChat] = await db
     .insert(chats)
     .values({
-      itemAuditId: validatedData.itemAuditId ?? null,
+      auditId: audit.id,
       sender: validatedData.sender,
       chatText: validatedData.chatText ?? null,
       imageUrl: validatedData.imageUrl ?? null,

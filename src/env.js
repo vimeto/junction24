@@ -13,6 +13,7 @@ export const env = createEnv({
       .default("development"),
     SMS_USERNAME: z.string(),
     SMS_PASSWORD: z.string(),
+    OPENAI_API_KEY: z.string(),
   },
 
   /**
@@ -35,6 +36,7 @@ export const env = createEnv({
     NODE_ENV: process.env.NODE_ENV,
     SMS_USERNAME: process.env.SMS_USERNAME,
     SMS_PASSWORD: process.env.SMS_PASSWORD,
+    OPENAI_API_KEY: process.env.OPENAI_API_KEY,
     NEXT_PUBLIC_APP_URL: process.env.NEXT_PUBLIC_APP_URL,
     NEXT_PUBLIC_OPENAI_RELAY_SERVER_URL: process.env.NEXT_PUBLIC_OPENAI_RELAY_SERVER_URL,
   },

@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 /**
  * Raw wav audio file contents
  * @typedef {Object} WavPackerAudioType
