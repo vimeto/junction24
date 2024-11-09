@@ -2,7 +2,7 @@ import { db } from "../db";
 import { chats, audits } from "../db/schema";
 import { and, eq, isNull } from "drizzle-orm";
 
-export async function getVisibleChats(auditUuid: string) {
+export async function getVisibleChats(auditUuid: string, includeHidden = false) {
   const audit = await db.query.audits.findFirst({
     where: eq(audits.uuid, auditUuid),
   });
@@ -14,7 +14,7 @@ export async function getVisibleChats(auditUuid: string) {
   const visibleChats = await db.query.chats.findMany({
     where: and(
       eq(chats.auditId, audit.id),
-      eq(chats.hidden, false)
+      includeHidden ? undefined : eq(chats.hidden, false)
     ),
     orderBy: (chats, { asc }) => [asc(chats.createdAt)],
   });
