@@ -17,8 +17,12 @@ export function OrganizationSummaryCard({
   totalAudits,
 }: OrganizationSummaryProps) {
   return (
-    <Link href={`/admin/organizations/${id}`} className="block transition-opacity hover:opacity-70">
-      <Card>
+    <Link 
+      href={`/admin/organizations/${id}`} 
+      className="block group relative"
+    >
+      <div className="absolute -inset-[1px] rounded-xl bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+      <Card className="relative z-10 transition-all group-hover:border-transparent duration-500">
         <CardHeader>
           <CardTitle>{name}</CardTitle>
           <CardDescription>Organization Summary</CardDescription>
