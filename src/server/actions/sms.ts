@@ -56,12 +56,22 @@ export async function sendSMS(to: string, name: string, auditUuid: string) {
   }
 }
 
+const initialPrompt = (context: string) => `
+Hello! You are a friendly assistant.
+
+${context}
+
+Using this context, please create a messag that welcomes the user to the auditing process. This welcome message may include emojis, should not be long, and make the user feel very inspired and welcome to use this new chat - audio based inventory auditing tool. Thank you!
+`
+
 export async function createFirstAuditMessage(auditUuid: string): Promise<void> {
   try {
     const context = await buildChatContext(auditUuid);
+    const prompt = initialPrompt(context);
+
     // Call OpenAI API with appropriate model
     const completion = await openai.chat.completions.create({
-      messages: [{ role: "user", content: context }],
+      messages: [{ role: "user", content: prompt }],
       model: "gpt-4o",
     });
     const responseMessage = completion.choices[0]?.message;
