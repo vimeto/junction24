@@ -24,18 +24,19 @@ function formatPhoneNumber(phone: string): string {
   return cleaned;
 }
 
-export async function sendSMS(to: string, name: string) {
+export async function sendSMS(to: string, name: string, auditUuid: string) {
   const username = env.SMS_USERNAME;
   const password = env.SMS_PASSWORD;
   const auth = Buffer.from(username + ":" + password).toString("base64");
 
-  // Format the phone number
   const formattedPhone = formatPhoneNumber(to);
+
+  const auditUrl = `${env.NEXT_PUBLIC_APP_URL}/audits/${auditUuid}`;
 
   const data = {
     from: "+358452624001",
     to: formattedPhone,
-    message: `Hello there ${name}! You have been assigned to perform an audit.`
+    message: `Hello ${name}! You have been assigned to perform an audit. Access your audit here: ${auditUrl}`
   }
 
   const dataString = new URLSearchParams(data).toString();

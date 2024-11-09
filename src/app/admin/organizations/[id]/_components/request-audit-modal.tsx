@@ -13,6 +13,7 @@ import { useState } from "react";
 import { type LocationWithItems } from "~/server/queries/organizations";
 import { sendSMS } from "~/server/actions/sms";
 import { toast } from "sonner";
+import { createAuditWithAuditer } from "~/server/actions/audits";
 
 type Auditor = {
   id: string;
@@ -52,20 +53,31 @@ export function RequestAuditModal({
 
     setIsSubmitting(true);
     try {
-      // Send SMS to each auditor
+      // Create audits and send SMS for each auditor
       await Promise.all(
         auditors.map(async (auditor) => {
           if (!auditor.name || !auditor.phone) {
             throw new Error("Please fill in all auditor details");
           }
-          await sendSMS(auditor.phone, auditor.name);
+
+          // Create audit and auditer
+          const { audit } = await createAuditWithAuditer({
+            name: auditor.name,
+            phoneNumber: auditor.phone,
+            locationId: location.id,
+            organizationId: location.organizationId,
+          });
+
+          // Send SMS with audit link
+          await sendSMS(auditor.phone, auditor.name, audit.uuid);
         })
       );
 
-      toast.success("Audit request sent successfully!");
+      toast.success("Audit requests sent successfully!");
       onOpenChange(false);
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Failed to send audit request");
+      console.error(error);
+      toast.error(error instanceof Error ? error.message : "Failed to send audit requests");
     } finally {
       setIsSubmitting(false);
     }
