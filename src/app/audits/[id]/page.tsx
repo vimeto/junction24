@@ -16,6 +16,7 @@ import useAudioVisualization from "./_hooks/useAudioVisualization";
 import { InlineCamera } from "./camera";
 import AudioBar from "./audioBar";
 import TextInput from "./textBar";
+import { getCurrentLocation } from "~/utils/getLocation";
 
 interface Message {
   text?: string;
@@ -133,28 +134,59 @@ export default function ChatWindow() {
     }
   }, [transcript]);
 
+  // Helper function to add metadata to user message
+  interface Metadata {
+    latitude: number;
+    longitude: number;
+    [key: string]: any;
+  }
+
+  const addMetadata = (
+    metadata: Metadata = { latitude: 0, longitude: 0 },
+  ): string => {
+    let metadataText = "\n\nMetadata";
+    for (const [key, value] of Object.entries(metadata)) {
+      metadataText += `\n\t-${key}: ${value}`;
+    }
+    return `${metadataText}`;
+  };
+
+  // Modified sendMessage function
   const handleSend = async () => {
     if (inputText.trim()) {
-      // Add user message immediately
-      const newMessage = { text: inputText, sender: "user" };
-      setMessages([
-        ...messages,
-        {
-          ...newMessage,
-          text: newMessage.text || "",
-          sender: newMessage.sender as "user" | "ai",
-        },
-      ]);
-      setInputText("");
-
       try {
+        // Get user location
+        const location = await getCurrentLocation();
+
+        // Define metadata (can be dynamically set in the future)
+        const metadata = {
+          latitude: location.latitude,
+          longitude: location.longitude,
+          // additional metadata fields can be added here
+        };
+
+        // Add metadata to the user message
+        const textMetadata = addMetadata(metadata);
+
+        // Add user message immediately
+        const newMessage = { text: inputText, sender: "user" };
+        setMessages([
+          ...messages,
+          {
+            ...newMessage,
+            text: newMessage.text || "",
+            sender: newMessage.sender as "user" | "ai",
+          },
+        ]);
+        setInputText("");
+
         // Call the API route
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
-          body: JSON.stringify({ text: inputText }),
+          body: JSON.stringify({ text: inputText, metadata: textMetadata }),
         });
 
         if (!response.ok) {
@@ -169,7 +201,7 @@ export default function ChatWindow() {
           { text: data.response, sender: "ai" },
         ]);
       } catch (error) {
-        console.error("Error sending message:", error);
+        console.error("Error getting location or sending message:", error);
         // Add error message
         setMessages((prevMessages) => [
           ...prevMessages,

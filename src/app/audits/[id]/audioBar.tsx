@@ -72,7 +72,11 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
           }
           toggleMute();
         }}
-        className="border-none bg-transparent text-white hover:bg-transparent hover:text-neutral-700"
+        className={`border-none bg-transparent ${
+          isMuted
+            ? "bg-red-500/10 text-red-500 hover:bg-red-500/20"
+            : "text-white hover:bg-transparent hover:text-neutral-700"
+        }`}
       >
         {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
       </Button>
