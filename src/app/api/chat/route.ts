@@ -2,6 +2,7 @@ import { auth } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import OpenAI from "openai";
+import { createItemAudit } from "~/server/actions/itemAudits";
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -32,8 +33,8 @@ const messageSchema = z.object({
 });
 
 // Add this type at the top of the file
-type ChatContent = 
-  | string 
+type ChatContent =
+  | string
   | Array<{
       type: "text" | "image_url";
       text?: string;
@@ -48,7 +49,7 @@ const auditTool = {
     description: "Generates a report stating that the item has been audited to the provided location.",
     parameters: {
       type: "object",
-      required: ["auditor_id", "item_id", "location_id"],
+      required: ["auditor_id", "item_id", "location_id", "audit_id"],
       properties: {
         auditer_id: {
           type: "string",
@@ -61,6 +62,10 @@ const auditTool = {
         location_id: {
           type: "string",
           description: "Unique identifier for the location"
+        },
+        audit_id: {
+          type: "string",
+          description: "Unique identifier for the audit"
         },
         metadata: {
           type: "object",
@@ -102,9 +107,6 @@ const auditTool = {
     }
   }
 } as const;
-
-// Import the POST handler from itemAudits route
-import { POST as itemAuditHandler } from '../itemAudits/route';
 
 export async function POST(req: Request) {
   try {
@@ -162,38 +164,31 @@ export async function POST(req: Request) {
 
     // Handle function calls from OpenAI
     const responseMessage = completion.choices[0]?.message;
-    
+
     if (responseMessage?.tool_calls?.[0]) {
       // Handle the function call
       const functionCall = responseMessage.tool_calls[0];
       if (functionCall.function.name === 'audit_item_location') {
         const args = JSON.parse(functionCall.function.arguments);
-        
+
         console.log('Audit request payload:', args);
-        console.log('Request URL:', `${process.env.NEXT_PUBLIC_APP_URL}/api/itemAudits`);
 
-        // Create a new Request object
-        const auditRequest = new Request(`${process.env.NEXT_PUBLIC_APP_URL}/api/itemAudits`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify(args)
-        });
+        try {
+          // Call the action directly instead of going through the API
+          const result = await createItemAudit(args, user.userId);
 
-        // Call the handler directly
-        const auditResponse = await itemAuditHandler(auditRequest);
-        
-        if (!auditResponse.ok) {
-          const errorText = await auditResponse.text();
-          throw new Error(`Failed to create audit: ${auditResponse.status} - ${errorText}`);
+          return NextResponse.json({
+            success: true,
+            response: `Audit created successfully with ID: ${result.itemAuditId}`
+          });
+        } catch (error) {
+          console.error('Failed to create audit:', error);
+          throw new Error(
+            error instanceof Error
+              ? `Failed to create audit: ${error.message}`
+              : "Failed to create audit"
+          );
         }
-
-        const auditResult = await auditResponse.json();
-        return NextResponse.json({
-          success: true,
-          response: `Audit created successfully with ID: ${auditResult.data.itemAuditId}`
-        });
       }
     }
 
