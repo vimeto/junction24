@@ -6,7 +6,7 @@ const auditTool = {
     description: "Generates a report stating that the item has been audited to the provided location.",
     parameters: {
       type: "object",
-      required: ["auditor_id", "item_id", "audit_id"],
+      required: ["auditer_id", "item_id", "audit_id"],
       properties: {
         auditer_id: {
           type: "integer",

@@ -2,15 +2,17 @@
 
 import { useCallback, useState, useRef, useEffect } from 'react';
 import { RealtimeClient } from '@openai/realtime-api-beta';
-import { ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
+import { InputTextContentType, ItemType } from '@openai/realtime-api-beta/dist/lib/client.js';
 import { WavRecorder, WavStreamPlayer } from '~/lib/wavtools/index.js';
 import { instructions } from '~/lib/system_prompts/realtime_config';
 import { RealtimeEvent } from '../_types';
 import { env } from '~/env';
+import { Message } from '~/app/audits/[id]/_components/auditWindow';
+import { auditTool } from "~/app/api/chat/tools";
 
 const OPENAI_RELAY_SERVER_URL = env.NEXT_PUBLIC_OPENAI_RELAY_SERVER_URL;
 
-export function useConversation() {
+export function useConversation({ initialMessages }: { initialMessages: Message[] }) {
   const [isConnected, setIsConnected] = useState(false);
   const [items, setItems] = useState<ItemType[]>([]);
 
@@ -42,12 +44,116 @@ export function useConversation() {
     await wavStreamPlayer.connect();
     await client.connect();
 
-    client.sendUserMessageContent([
-      {
+    // Add the audit tool
+    client.addTool({
+      name: "audit_item_location",
+      description: "Generates a report stating that the item has been audited to the provided location.",
+      parameters: {
+        type: "object",
+        required: ["auditer_id", "item_id", "audit_id"],
+        properties: {
+          auditer_id: {
+            type: "integer",
+            description: "Unique identifier for the auditor"
+          },
+          item_id: {
+            type: "integer",
+            description: "Unique identifier for the item being audited"
+          },
+          location_id: {
+            type: "integer",
+            description: "Unique identifier for the location"
+          },
+          audit_id: {
+            type: "integer",
+            description: "Unique identifier for the audit. This is the audit ID!"
+          },
+          metadata: {
+            type: "object",
+            description: "Additional audit information",
+            properties: {
+              latitude: {
+                type: "number",
+                description: "Latitude coordinate of the location"
+              },
+              longitude: {
+                type: "number",
+                description: "Longitude coordinate of the location"
+              },
+              comments: {
+                type: "string",
+                description: "Optional comments about the audit"
+              },
+              condition: {
+                type: "string",
+                enum: ["good", "fair", "poor"],
+                description: "Optional assessment of the item's condition"
+              },
+              image_url: {
+                type: "string",
+                description: "URL of the audit image if provided"
+              },
+              image_confirmed: {
+                type: "boolean",
+                description: "Whether the image has been confirmed"
+              },
+              serial_number: {
+                type: "string",
+                description: "Serial number of the item if applicable"
+              }
+            }
+          }
+        },
+        additionalProperties: false
+      }
+    }, async (params: any) => {
+      console.log(params);
+      try {
+        const response = await fetch('/api/realtime/audit', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(params),
+        });
+
+        if (!response.ok) {
+          throw new Error('Failed to create audit');
+        }
+
+        const result = await response.json();
+        if (!result.success) {
+          throw new Error(result.error || 'Failed to create audit');
+        }
+
+        return {
+          success: true,
+          message: "Audit created successfully",
+          auditId: result.itemAuditId
+        };
+      } catch (error) {
+        console.error('Audit tool error:', error);
+        throw error;
+      }
+    });
+
+    let messageHistory: InputTextContentType[] = []
+    if (initialMessages.length > 0) {
+      const initialMessage = { type: `input_text` as const, text: `The following is the history of the previous conversations` }
+      const previousMessages = initialMessages.map((message) => ({
+        type: `input_text` as const,
+        text: `${message.role === "user" ? "User" : "Assistant"}: ${message.text}`
+      }));
+      const finalMessage = { type: `input_text` as const, text: `That was it! If there was a question, please answer it, otherwise answer with a neutral greeting` }
+      messageHistory = [initialMessage, ...previousMessages, finalMessage]
+    }
+    else {
+      messageHistory.push({
         type: `input_text`,
         text: `Hello!`,
-      },
-    ]);
+      })
+    }
+    client.sendUserMessageContent(messageHistory);
 
     if (client.getTurnDetectionType() === 'server_vad') {
       await wavRecorder.record((data) => client.appendInputAudio(data.mono));
