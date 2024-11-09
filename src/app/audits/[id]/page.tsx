@@ -234,7 +234,7 @@ export default function ChatWindow() {
     <>
       <div className="flex h-full items-center justify-center">
         <Card className="z-0 flex h-full w-full flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
-          <CardContent className="flex-1 p-0">
+          <CardContent className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-full" ref={scrollAreaRef}>
               <div className="space-y-4 p-4" ref={messagesContainerRef}>
                 {messages.map((message, index) => (
@@ -305,7 +305,7 @@ export default function ChatWindow() {
               )}
             </div>
             {showCamera && (
-              <div className="fixed inset-0 bg-black z-50">
+              <div className="fixed inset-0 z-50 bg-black">
                 <InlineCamera
                   onClose={() => setShowCamera(false)}
                   onImageUploaded={(imageUrl) => handleImageUpload(imageUrl)}
