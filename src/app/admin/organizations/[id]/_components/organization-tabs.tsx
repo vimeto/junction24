@@ -7,6 +7,7 @@ import { type OrganizationDetails, type LocationWithItems } from "~/server/queri
 import { LocationMap } from "./location-map";
 import { LocationItems } from "./location-items";
 import { OrganizationSettings } from "./organization-settings";
+import { ImageValidation } from "./image-validation";
 
 export function OrganizationTabs({
   organization,
@@ -21,6 +22,7 @@ export function OrganizationTabs({
         <TabsTrigger value="map">Map View</TabsTrigger>
         <TabsTrigger value="items">Items by Location</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
+        <TabsTrigger value="validate-images">Validate Images</TabsTrigger>
       </TabsList>
 
       <TabsContent value="map" className="space-y-4">
@@ -33,6 +35,10 @@ export function OrganizationTabs({
 
       <TabsContent value="settings" className="space-y-4">
         <OrganizationSettings organization={organization} />
+      </TabsContent>
+
+      <TabsContent value="validate-images" className="space-y-4">
+        <ImageValidation />
       </TabsContent>
     </Tabs>
   );
