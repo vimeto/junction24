@@ -53,11 +53,7 @@ const AudioVisualizer: React.FC<AudioVisualizerProps> = ({
 
   const handleFileChange = async (file: File) => {
     if (file) {
-      const result = await startUpload([file]);
-      if (result && result[0]) {
-        const imageUrl = result[0].url;
-        handleImageUpload(imageUrl);
-      }
+      await startUpload([file]);
     }
   };
 
