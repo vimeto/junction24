@@ -20,9 +20,11 @@ import TextInput from "../textBar";
 import { getCurrentLocation } from "~/utils/getLocation";
 
 interface Message {
+  id?: number;
   text?: string;
   role: "user" | "assistant";
   image?: string;
+  isLoading?: boolean;
 }
 
 
@@ -72,71 +74,55 @@ export default function AuditWindow({ params }: PageProps) {
   };
 
   const handleImageUpload = async (imageUrl: string) => {
-    // Add the image message to the chat
-    setMessages((prev) => [
+    // Generate unique ID for message pair
+    const messageId = Date.now();
+    
+    // Immediately show image with loading state
+    setMessages(prev => [
       ...prev,
       {
+        id: messageId,
         role: "user",
-        image: imageUrl,
+        image: imageUrl
       },
+      {
+        id: messageId + 1,
+        role: "assistant", 
+        text: "Analyzing image...",
+        isLoading: true
+      }
     ]);
 
-    // process the image using the AI
-    await handleSendImage(imageUrl);
-  };
-  const handleSendImage = async (imageUrl: string) => {
-    setMessages((prev) => [
-      ...prev,
-      {
-        text: "Analyzing image...",
-        role: "assistant",
-      },
-    ]);
     try {
       const response = await fetch("/api/chat", {
         method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          imageUrl: imageUrl,
-        }),
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl })
       });
 
       if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(errorText || "Failed to analyze image");
+        throw new Error("Failed to analyze image");
       }
 
       const data = await response.json();
 
-      // Remove loading message and add AI response
-      setMessages((prev) => {
-        const withoutLoading = prev.slice(0, -1); // Remove loading message
-        return [
-          ...withoutLoading,
-          {
-            text: data.response,
-            role: "assistant",
-          },
-        ];
-      });
-    } catch (error) {
-      console.error("Error analyzing image:", error);
+      // Update only the assistant message
+      setMessages(prev => prev.map(msg => 
+        msg.id === messageId + 1
+          ? { ...msg, text: data.response, isLoading: false }
+          : msg
+      ));
 
-      // Remove loading message and add error message
-      setMessages((prev) => {
-        const withoutLoading = prev.slice(0, -1);
-        return [
-          ...withoutLoading,
-          {
-            text: "Sorry, I encountered an error analyzing the image. Please try again.",
-            role: "assistant",
-          },
-        ];
-      });
+    } catch (error) {
+      // Update error state while keeping the image
+      setMessages(prev => prev.map(msg =>
+        msg.id === messageId + 1
+          ? { ...msg, text: "Error analyzing image. Please try again.", isLoading: false }
+          : msg
+      ));
     }
   };
+
   useEffect(() => {
     if (transcript) {
       setInputText(transcript);
@@ -283,21 +269,29 @@ export default function AuditWindow({ params }: PageProps) {
                         className={`max-w-[80%] rounded-lg p-3 prose prose-invert ${message.role === "user" ? "bg-[#2a2a2c]" : "bg-[#323234]"}`}
                       >
                         {message.text && (
-                          <ReactMarkdown
-                            components={{
-                              p: ({ children }) => <p className="m-0">{children}</p>,
-                              pre: ({ children }) => <pre className="overflow-x-auto p-2 bg-[#1a1a1c] rounded">{children}</pre>,
-                              code: ({ children }) => <code className="bg-[#1a1a1c] px-1 rounded">{children}</code>,
-                            }}
-                          >
-                            {message.text}
-                          </ReactMarkdown>
+                          <>
+                            <ReactMarkdown
+                              components={{
+                                p: ({ children }) => <p className="m-0">{children}</p>,
+                                pre: ({ children }) => <pre className="overflow-x-auto p-2 bg-[#1a1a1c] rounded">{children}</pre>,
+                                code: ({ children }) => <code className="bg-[#1a1a1c] px-1 rounded">{children}</code>,
+                              }}
+                            >
+                              {message.text}
+                            </ReactMarkdown>
+                            {message.isLoading && (
+                              <div className="animate-pulse mt-2">
+                                <div className="h-2 bg-gray-700 rounded w-16"></div>
+                              </div>
+                            )}
+                          </>
                         )}
                         {message.image && (
                           <img
                             src={message.image}
                             alt="Uploaded"
-                            className="max-w-full rounded"
+                            className="max-w-full rounded transition-opacity duration-300"
+                            loading="lazy"
                           />
                         )}
                       </div>
