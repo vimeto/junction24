@@ -24,6 +24,7 @@ export function LocationItems({
   const [selectedLocation, setSelectedLocation] = useState<LocationWithItems | null>(null);
 
   const handleRequestAudit = (location: LocationWithItems) => {
+    if (location.id === -1) return; // Prevent audit requests for "No Location"
     setSelectedLocation(location);
     setIsModalOpen(true);
   };
@@ -35,9 +36,11 @@ export function LocationItems({
           <Card key={location.id}>
             <CardHeader className="flex flex-row items-center justify-between">
               <CardTitle>{location.name}</CardTitle>
-              <Button onClick={() => handleRequestAudit(location)}>
-                Request Audit
-              </Button>
+              {location.id !== -1 && (
+                <Button onClick={() => handleRequestAudit(location)}>
+                  Request Audit
+                </Button>
+              )}
             </CardHeader>
             <CardContent>
               <Table>

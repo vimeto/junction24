@@ -20,9 +20,9 @@ export function OrganizationTabs({
     <Tabs defaultValue="map" className="space-y-4">
       <TabsList>
         <TabsTrigger value="map">Map View</TabsTrigger>
+        <TabsTrigger value="validate-images">Validate Images</TabsTrigger>
         <TabsTrigger value="items">Items by Location</TabsTrigger>
         <TabsTrigger value="settings">Settings</TabsTrigger>
-        <TabsTrigger value="validate-images">Validate Images</TabsTrigger>
       </TabsList>
 
       <TabsContent value="map" className="space-y-4">

@@ -1,7 +1,7 @@
 import { db } from "../db";
 import { auth } from "@clerk/nextjs/server";
-import { organizations, organizationRoles, locations, audits, itemAudits } from "../db/schema";
-import { and, eq } from "drizzle-orm";
+import { organizations, organizationRoles, locations, audits, itemAudits, items } from "../db/schema";
+import { and, eq, notInArray } from "drizzle-orm";
 
 export type OrganizationSummary = {
   id: number;
@@ -201,7 +201,12 @@ export async function getLocationItems(organizationId: number): Promise<Location
     },
   });
 
-  return orgLocations.map(location => ({
+  const allItemIds = orgLocations.flatMap(location => location.itemAudits.map(audit => audit.itemId)).filter(id => id !== null) as number[];
+  const itemsWithoutLocation = await db.query.items.findMany({
+    where: notInArray(items.id, allItemIds),
+  });
+
+  const orgLocationsWithItems = orgLocations.map(location => ({
     id: location.id,
     name: location.name ?? "Unnamed Location",
     items: location.itemAudits.map(audit => ({
@@ -214,4 +219,21 @@ export async function getLocationItems(organizationId: number): Promise<Location
       lastAuditDate: audit.audit?.createdAt ?? null,
     })),
   }));
+
+  return [
+    ...orgLocationsWithItems,
+    {
+      id: -1, // Special ID for no location
+      name: "No Location",
+      items: itemsWithoutLocation.map(item => ({
+        id: item.id,
+        identifier: item.identifier ?? "Unknown",
+        itemType: item.itemType ?? "item",
+        identifierType: item.identifierType ?? "serial",
+        requireImage: item.requireImage ?? false,
+        requireImageConfirmation: item.requireImageConfirmation ?? false,
+        lastAuditDate: null,
+      })),
+    },
+  ];
 }

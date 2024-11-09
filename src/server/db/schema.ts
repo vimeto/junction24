@@ -53,6 +53,7 @@ export const items = createTable(
     identifierType: identifierTypeEnum("identifier_type"),
     itemType: itemTypeEnum("item_type"),
     collectionAmount: integer("collection_amount").default(1),
+    organizationId: integer("organization_id").references(() => organizations.id),
     metadata: text("metadata"),
     createdAt: timestamp("created_at", { withTimezone: true })
       .default(sql`CURRENT_TIMESTAMP`)
@@ -125,7 +126,7 @@ export const chats = createTable(
   "chats",
   {
     id: integer("id").primaryKey().generatedByDefaultAsIdentity(),
-    itemAuditId: integer("item_audit_id").references(() => itemAudits.id),
+    auditId: integer("audit_id").references(() => audits.id),
     sender: varchar("sender", { length: 256 }),
     chatText: text("chat_text"),
     imageUrl: varchar("image_url", { length: 255 }),
@@ -182,8 +183,12 @@ export const organizations = createTable(
   }
 );
 
-export const itemsRelations = relations(items, ({ many }) => ({
+export const itemsRelations = relations(items, ({ many, one }) => ({
   itemAudits: many(itemAudits),
+  organization: one(organizations, {
+    fields: [items.organizationId],
+    references: [organizations.id],
+  }),
 }));
 
 export const itemAuditsRelations = relations(itemAudits, ({ one }) => ({
@@ -219,6 +224,7 @@ export const auditsRelations = relations(audits, ({ one, many }) => ({
     references: [locations.id],
   }),
   itemAudits: many(itemAudits),
+  chats: many(chats),
 }));
 
 export const locationsRelations = relations(locations, ({ one, many }) => ({
@@ -240,9 +246,17 @@ export const organizationRolesRelations = relations(organizationRoles, ({ one })
 export const organizationsRelations = relations(organizations, ({ many }) => ({
   locations: many(locations),
   organizationRoles: many(organizationRoles),
+  items: many(items),
 }));
 
 export const auditersRelations = relations(auditers, ({ many }) => ({
   itemAudits: many(itemAudits),
   audits: many(audits),
+}));
+
+export const chatsRelations = relations(chats, ({ one }) => ({
+  audit: one(audits, {
+    fields: [chats.auditId],
+    references: [audits.id],
+  }),
 }));
