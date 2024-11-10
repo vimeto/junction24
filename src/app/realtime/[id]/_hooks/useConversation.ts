@@ -21,6 +21,8 @@ export function useConversation({ initialMessages }: { initialMessages: Message[
     [key: string]: boolean;
   }>({});
 
+  const [isMuted, setIsMuted] = useState(false);
+
   const wavRecorderRef = useRef<WavRecorder>(
     new WavRecorder({ sampleRate: 24000 })
   );
@@ -182,6 +184,25 @@ export function useConversation({ initialMessages }: { initialMessages: Message[
     setItems(client.conversation.getItems());
   }, []);
 
+  const toggleMute = useCallback(async () => {
+    const wavRecorder = wavRecorderRef.current;
+    setIsMuted(prev => !prev);
+
+    if (isMuted) {
+      const client = clientRef.current;
+      const wavStreamPlayer = wavStreamPlayerRef.current;
+      const trackSampleOffset = await wavStreamPlayer.interrupt();
+      if (trackSampleOffset?.trackId) {
+        const { trackId, offset } = trackSampleOffset;
+        await client.cancelResponse(trackId, offset);
+      }
+      await wavRecorder.record((data) => client.appendInputAudio(data.mono));
+    } else {
+      // Mute: pause recording
+      await wavRecorder.pause();
+    }
+  }, [isMuted]);
+
   useEffect(() => {
     const wavStreamPlayer = wavStreamPlayerRef.current;
     const client = clientRef.current;
@@ -250,6 +271,8 @@ export function useConversation({ initialMessages }: { initialMessages: Message[
 
   return {
     isConnected,
+    isMuted,
+    toggleMute,
     items,
     wavRecorderRef,
     wavStreamPlayerRef,

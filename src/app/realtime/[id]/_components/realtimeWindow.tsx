@@ -15,7 +15,7 @@ import { Card, CardContent, CardFooter } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import ReactMarkdown from 'react-markdown';
-import { Mic, MicOff, Keyboard, Camera, X } from 'lucide-react';
+import { Mic, MicOff, Keyboard, Camera, X, MicOff as MicMuted } from 'lucide-react';
 
 interface RealtimeWindowProps {
   id: string;
@@ -32,6 +32,8 @@ export default function RealtimeWindow({ id, initialMessages }: RealtimeWindowPr
 
   const {
     isConnected,
+    isMuted,
+    toggleMute,
     items,
     wavRecorderRef,
     wavStreamPlayerRef,
@@ -255,6 +257,25 @@ export default function RealtimeWindow({ id, initialMessages }: RealtimeWindowPr
                   >
                     {!isConnected ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </Button>
+
+                  {isConnected && (
+                    <Button
+                      variant="outline"
+                      size="icon"
+                      onClick={toggleMute}
+                      className={`border-none bg-transparent ${
+                        isMuted
+                          ? "bg-yellow-500/10 text-yellow-500 hover:bg-yellow-500/20"
+                          : "text-white hover:bg-transparent hover:text-neutral-700"
+                      }`}
+                    >
+                      {isMuted ? (
+                        <MicMuted className="h-4 w-4" />
+                      ) : (
+                        <Mic className="h-4 w-4 text-green-500" />
+                      )}
+                    </Button>
+                  )}
 
                   <div className="flex h-10 flex-1">
                     <Visualizer
