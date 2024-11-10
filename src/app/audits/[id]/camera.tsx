@@ -2,7 +2,7 @@
 
 "use client";
 
-import React, { useRef, useState } from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Camera } from 'react-camera-pro';
 import { useUploadThing } from '~/utils/uploadthing';
 import { toast } from 'sonner';
@@ -25,6 +25,29 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
     const camera = useRef(null);
     const [image, setImage] = useState<string | undefined>(undefined);
     const [numberOfCameras, setNumberOfCameras] = useState(0);
+    const [hasPermission, setHasPermission] = useState(false);
+
+    // Request permission once when component mounts
+    useEffect(() => {
+        const requestPermission = async () => {
+            try {
+                await navigator.mediaDevices.getUserMedia({ video: true });
+                setHasPermission(true);
+            } catch (err) {
+                console.error("Error accessing camera:", err);
+                toast.error("Camera access denied");
+            }
+        };
+        
+        requestPermission();
+        
+        // Cleanup
+        return () => {
+            if (camera.current) {
+                camera.current?.stopCamera();
+            }
+        };
+    }, []);
 
     const base64ToFile = (base64: string, filename: string) => {
         const arr = base64.split(',');
@@ -81,7 +104,7 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
 
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black">
-            <div className="w-full max-w-md mx-auto flex flex-col h-screen">
+            <div className="w-full max-w-md mx-auto flex flex-col h-screen max-h-[800px] rounded-2xl overflow-hidden">
                 <div className="h-16 bg-[#1a1a1c] border-b border-gray-800 flex-shrink-0">
                     <div className="h-full flex items-center px-4">
                         <Button
@@ -95,13 +118,13 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
                     </div>
                 </div>
                 <div className="flex-1 relative overflow-hidden">
-                    <div className="absolute inset-0">
+                    <div className="absolute inset-0 flex items-center justify-center bg-black">
                         {!image ? (
                             <Camera
                                 ref={camera}
                                 numberOfCamerasCallback={setNumberOfCameras}
                                 errorMessages={errorMessages}
-                                className="h-full w-full object-cover"
+                                className="h-full w-full object-contain"
                                 mirrored={true}
                                 videoSourceDeviceId={undefined}
                                 resizeMode="none"
@@ -113,7 +136,7 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
                             <img
                                 src={image}
                                 alt='Preview'
-                                className="h-full w-full object-cover transform scale-x-[-1]"
+                                className="h-auto w-full object-contain transform scale-x-[-1]"
                             />
                         )}
                     </div>
