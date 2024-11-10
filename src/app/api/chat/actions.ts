@@ -99,7 +99,10 @@ const processChat = async (params: ChatPayload) => {
       }
     } else if (functionCall.function.name === 'extract_image_keywords') {
       const args = JSON.parse(functionCall.function.arguments);
-      aiResponse = `Extracted these keywords from the image:\n${Object.entries(args).map(([key, value]) => `${key}: ${value}`).join("\n")}`;
+      aiResponse = `Extracted these keywords from the image:\n${Object.entries(args).map(([key, value]) => {
+        const formattedValue = Array.isArray(value) ? value.join(", ") : String(value);
+        return `${key}: ${formattedValue}`;
+      }).join("\n")}`;
     }
   } else {
     aiResponse = responseMessage?.content ?? null;

@@ -56,6 +56,13 @@ export default {
   				'4': 'hsl(var(--chart-4))',
   				'5': 'hsl(var(--chart-5))'
   			}
+  		},
+  		hyphenate: {
+  			'auto': {
+  				'hyphens': 'auto',
+  				'-webkit-hyphens': 'auto',
+  				'-ms-hyphens': 'auto'
+  			}
   		}
   	}
   },
