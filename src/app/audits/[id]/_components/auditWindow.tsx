@@ -56,6 +56,7 @@ export default function AuditWindow({ params }: PageProps) {
   const [isLoading, setIsLoading] = useState(false);
   const endOfChatsRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     if (isListening && !isMuted) {
@@ -154,37 +155,41 @@ export default function AuditWindow({ params }: PageProps) {
 
   // Modified sendMessage function
   const handleSend = async () => {
-    if (inputText.trim() && !isLoading) {
-      try {
-        setIsLoading(true);
-        // Get user location
-        const location = await getCurrentLocation();
+    if (inputText.trim() && !isLoading && !isSending) {
+      const messageText = inputText.trim();
+      setInputText(""); // Clear input immediately
 
+      // Immediately add the message pair to the UI
+      const messageId = Date.now();
+      setMessages(prev => [...prev,
+        {
+          id: messageId,
+          text: messageText,
+          role: "user",
+        },
+        {
+          id: messageId + 1,
+          role: "assistant",
+          text: "",
+          isLoading: true
+        }
+      ]);
+
+      try {
+        setIsSending(true);
+        const location = await getCurrentLocation();
         const previousMessages = messages.map(msg => ({
           role: msg.role,
           content: msg.text || ""
         }));
 
-        // Add user message immediately
-        const newMessage = { text: inputText, sender: "user" };
-        setMessages([
-          ...messages,
-          {
-            ...newMessage,
-            text: newMessage.text || "",
-            role: newMessage.sender as "user" | "assistant",
-          },
-        ]);
-        setInputText("");
-
-        // Call the API route
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            text: inputText,
+            text: messageText,
             location: location,
             previousMessages,
             auditUuid: auditUuid
@@ -197,23 +202,26 @@ export default function AuditWindow({ params }: PageProps) {
 
         const data = await response.json();
 
-        // Add AI response
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { text: data.response, role: "assistant" },
-        ]);
+        // Update the assistant message with the real response
+        setMessages(prev => prev.map(msg =>
+          msg.id === messageId + 1
+            ? { ...msg, text: data.response, isLoading: false }
+            : msg
+        ));
       } catch (error) {
         console.error("Error sending message:", error);
-        // Add error message
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          {
-            text: "Sorry, I encountered an error. Please try again.",
-            role: "assistant",
-          },
-        ]);
+        // Update the loading message with an error
+        setMessages(prev => prev.map(msg =>
+          msg.id === messageId + 1
+            ? {
+                ...msg,
+                text: "Sorry, I encountered an error. Please try again.",
+                isLoading: false
+              }
+            : msg
+        ));
       } finally {
-        setIsLoading(false);
+        setIsSending(false);
       }
     }
   };
@@ -285,7 +293,15 @@ export default function AuditWindow({ params }: PageProps) {
                                     const formattedText = children?.toString().replace(/:\s*(\S)/g, ': $1');
                                     return (
                                       <p className="m-0 whitespace-pre-wrap break-words overflow-wrap-anywhere leading-relaxed min-w-[180px] max-w-[65ch] hyphens-auto [hyphens:auto] [-webkit-hyphens:auto] [-ms-hyphens:auto]">
-                                        {formattedText}
+                                        {message.isLoading ? (
+                                          <span className="inline-flex items-center">
+                                            <span className="animate-pulse">●</span>
+                                            <span className="animate-pulse delay-100">●</span>
+                                            <span className="animate-pulse delay-200">●</span>
+                                          </span>
+                                        ) : (
+                                          formattedText
+                                        )}
                                       </p>
                                     );
                                   },
