@@ -50,7 +50,7 @@ export default function AuditWindow({ params }: PageProps) {
     toggleMute,
     isMuted,
   } = useAudioVisualization();
-  const [isListening, setIsListening] = useState(true); // Start in audio mode by default
+  const [isListening, setIsListening] = useState(false); // Start in audio mode by default
   const [inputText, setInputText] = useState("");
   const [showCamera, setShowCamera] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
