@@ -50,12 +50,13 @@ export default function AuditWindow({ params }: PageProps) {
     toggleMute,
     isMuted,
   } = useAudioVisualization();
-  const [isListening, setIsListening] = useState(true); // Start in audio mode by default
+  const [isListening, setIsListening] = useState(false); // Start in audio mode by default
   const [inputText, setInputText] = useState("");
   const [showCamera, setShowCamera] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const endOfChatsRef = useRef<HTMLDivElement | null>(null);
   const messagesContainerRef = useRef<HTMLDivElement | null>(null);
+  const [isSending, setIsSending] = useState(false);
 
   useEffect(() => {
     if (isListening && !isMuted) {
@@ -154,37 +155,41 @@ export default function AuditWindow({ params }: PageProps) {
 
   // Modified sendMessage function
   const handleSend = async () => {
-    if (inputText.trim() && !isLoading) {
-      try {
-        setIsLoading(true);
-        // Get user location
-        const location = await getCurrentLocation();
+    if (inputText.trim() && !isLoading && !isSending) {
+      const messageText = inputText.trim();
+      setInputText(""); // Clear input immediately
 
+      // Immediately add the message pair to the UI
+      const messageId = Date.now();
+      setMessages(prev => [...prev,
+        {
+          id: messageId,
+          text: messageText,
+          role: "user",
+        },
+        {
+          id: messageId + 1,
+          role: "assistant",
+          text: "",
+          isLoading: true
+        }
+      ]);
+
+      try {
+        setIsSending(true);
+        const location = await getCurrentLocation();
         const previousMessages = messages.map(msg => ({
           role: msg.role,
           content: msg.text || ""
         }));
 
-        // Add user message immediately
-        const newMessage = { text: inputText, sender: "user" };
-        setMessages([
-          ...messages,
-          {
-            ...newMessage,
-            text: newMessage.text || "",
-            role: newMessage.sender as "user" | "assistant",
-          },
-        ]);
-        setInputText("");
-
-        // Call the API route
         const response = await fetch("/api/chat", {
           method: "POST",
           headers: {
             "Content-Type": "application/json",
           },
           body: JSON.stringify({
-            text: inputText,
+            text: messageText,
             location: location,
             previousMessages,
             auditUuid: auditUuid
@@ -197,23 +202,26 @@ export default function AuditWindow({ params }: PageProps) {
 
         const data = await response.json();
 
-        // Add AI response
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          { text: data.response, role: "assistant" },
-        ]);
+        // Update the assistant message with the real response
+        setMessages(prev => prev.map(msg =>
+          msg.id === messageId + 1
+            ? { ...msg, text: data.response, isLoading: false }
+            : msg
+        ));
       } catch (error) {
         console.error("Error sending message:", error);
-        // Add error message
-        setMessages((prevMessages) => [
-          ...prevMessages,
-          {
-            text: "Sorry, I encountered an error. Please try again.",
-            role: "assistant",
-          },
-        ]);
+        // Update the loading message with an error
+        setMessages(prev => prev.map(msg =>
+          msg.id === messageId + 1
+            ? {
+                ...msg,
+                text: "Sorry, I encountered an error. Please try again.",
+                isLoading: false
+              }
+            : msg
+        ));
       } finally {
-        setIsLoading(false);
+        setIsSending(false);
       }
     }
   };
@@ -238,6 +246,7 @@ export default function AuditWindow({ params }: PageProps) {
       }
     }
   }, [messages]);
+
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
@@ -250,7 +259,7 @@ export default function AuditWindow({ params }: PageProps) {
         <Card className="z-0 flex h-full w-full flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
           <CardContent className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-full" ref={scrollAreaRef}>
-              <div className="space-y-4 p-4" ref={messagesContainerRef}>
+              <div className="space-y-4 py-4 px-1" ref={messagesContainerRef}>
                 {messages.map((message, index) => (
                   <div
                     key={index}
@@ -264,7 +273,7 @@ export default function AuditWindow({ params }: PageProps) {
                           <>
                             <AvatarFallback>U</AvatarFallback>
                             <AvatarImage
-                              src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='grad1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23FFFFFF;stop-opacity:1' /%3E%3Cstop offset='40%25' style='stop-color:%23BBBBBB;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23303030;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23grad1)' d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E"
+                              src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23BBBBBB' d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E"
                             />
                           </>
                         ) : (
@@ -285,7 +294,15 @@ export default function AuditWindow({ params }: PageProps) {
                                     const formattedText = children?.toString().replace(/:\s*(\S)/g, ': $1');
                                     return (
                                       <p className="m-0 whitespace-pre-wrap break-words overflow-wrap-anywhere leading-relaxed min-w-[180px] max-w-[65ch] hyphens-auto [hyphens:auto] [-webkit-hyphens:auto] [-ms-hyphens:auto]">
-                                        {formattedText}
+                                        {message.isLoading ? (
+                                          <span className="inline-flex items-center">
+                                            <span className="animate-pulse">●</span>
+                                            <span className="animate-pulse delay-100">●</span>
+                                            <span className="animate-pulse delay-200">●</span>
+                                          </span>
+                                        ) : (
+                                          formattedText
+                                        )}
                                       </p>
                                     );
                                   },

@@ -14,6 +14,7 @@ import {
 import { Badge } from "~/components/ui/badge";
 import { type LocationWithItems } from "~/server/queries/organizations";
 import { RequestAuditModal } from "./request-audit-modal";
+import { formatRelativeTime } from "../_utils/formatRelativeTime";
 
 export function LocationItems({
   locations,
@@ -54,7 +55,7 @@ export function LocationItems({
                 </TableHeader>
                 <TableBody>
                   {location.items.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={`${location.id}-${item.id}`}>
                       <TableCell>
                         <div className="font-medium">{item.identifier}</div>
                         <div className="text-sm text-muted-foreground">
@@ -73,9 +74,7 @@ export function LocationItems({
                         </div>
                       </TableCell>
                       <TableCell>
-                        {item.lastAuditDate
-                          ? new Date(item.lastAuditDate).toLocaleDateString()
-                          : "Never"}
+                        {formatRelativeTime(item.lastAuditDate)}
                       </TableCell>
                     </TableRow>
                   ))}

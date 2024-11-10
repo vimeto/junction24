@@ -28,6 +28,7 @@ const TextInput: React.FC<TextInputProps> = ({
   setIsListening,
   showCamera,
   setShowCamera,
+  isLoading,
 }) => {
   const [isFocused, setIsFocused] = useState(false);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
@@ -127,9 +128,11 @@ const TextInput: React.FC<TextInputProps> = ({
             setIsFocused(false);
             handleSend();
           }}
-          className="bg-transparent text-white hover:bg-transparent hover:text-neutral-700"
+          disabled={isLoading || !inputText.trim()}
+          className={`bg-transparent text-white transition-opacity duration-200
+            ${isLoading ? 'opacity-50 cursor-not-allowed' : 'hover:bg-transparent hover:text-neutral-700'}`}
         >
-          <Send className="h-4 w-4" />
+          <Send className={`h-4 w-4 ${isLoading ? 'animate-pulse' : ''}`} />
         </Button>
       </div>
     </div>

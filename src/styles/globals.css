@@ -74,6 +74,10 @@
   body {
     @apply bg-background text-foreground;
   }
+  .corrected-h-screen {
+    height: 100vh;
+    height: 100svh;
+  }
 }
 
 dialog:modal {
