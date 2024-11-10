@@ -8,7 +8,7 @@ interface auditsLayoutProps {
 
 const AuditsLayout: React.FC<auditsLayoutProps> = ({ children }) => {
   return (
-    <div className="mx-auto flex h-screen w-full items-center justify-center">
+    <div className="mx-auto flex h-corrected-screen w-full items-center justify-center">
       <div className="h-full max-h-[800px] max-w-md">{children}</div>
     </div>
   );

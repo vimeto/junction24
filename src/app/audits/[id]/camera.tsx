@@ -38,9 +38,9 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
                 toast.error("Camera access denied");
             }
         };
-        
+
         requestPermission();
-        
+
         // Cleanup
         return () => {
             if (camera.current) {
@@ -104,7 +104,7 @@ export const InlineCamera = ({ onClose, onImageUploaded }: InlineCameraProps) =>
 
     return (
         <div className="fixed inset-0 flex items-center justify-center bg-black">
-            <div className="w-full max-w-md mx-auto flex flex-col h-screen max-h-[800px] rounded-2xl overflow-hidden">
+            <div className="w-full max-w-md mx-auto flex flex-col corrected-h-screen max-h-[800px] rounded-2xl overflow-hidden">
                 <div className="h-16 bg-[#1a1a1c] border-b border-gray-800 flex-shrink-0">
                     <div className="h-full flex items-center px-4">
                         <Button

@@ -33,9 +33,9 @@ export default async function HomePage() {
   return (
     <main className="cursor-default">
       <div className="mx-auto max-w-[800px]">
-        <div className="grid h-screen grid-cols-1 items-center justify-center gap-4 p-2 lg:grid-cols-2">
+        <div className="grid corrected-h-screen grid-cols-1 items-center justify-center gap-4 p-2 lg:grid-cols-2">
           <div className="flex h-full w-full items-end justify-center lg:items-center lg:justify-end lg:-mr-3">
-            <Link 
+            <Link
               href="/admin"
               className="block group relative h-full max-h-48 w-full max-w-48 sm:max-h-64 sm:max-w-64 cursor-pointer"
             >

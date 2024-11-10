@@ -156,7 +156,7 @@ export default function RealtimeWindow({ id, initialMessages }: RealtimeWindowPr
    * Render the application
    */
   return (
-    <div className="mx-auto flex h-screen w-full items-center justify-center">
+    <div className="mx-auto flex corrected-h-screen w-full items-center justify-center">
       <div className="h-full w-full max-w-md max-h-[800px]">
         <Card className="z-0 flex h-full w-full flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
           <CardContent className="flex-1 overflow-hidden p-0">

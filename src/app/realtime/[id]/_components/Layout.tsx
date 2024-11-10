@@ -14,7 +14,7 @@ export function RealtimeLayout({
   connectButton: React.ReactNode;
 }) {
   return (
-    <div className="container mx-auto p-4 h-screen">
+    <div className="container mx-auto p-4 corrected-h-screen">
       <Card className="h-full">
         <CardHeader>
           <CardTitle>Realtime Chat</CardTitle>

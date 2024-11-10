@@ -258,7 +258,7 @@ export default function AuditWindow({ params }: PageProps) {
         <Card className="z-0 flex h-full w-full flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
           <CardContent className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-full" ref={scrollAreaRef}>
-              <div className="space-y-4 p-4" ref={messagesContainerRef}>
+              <div className="space-y-4 py-4 px-1" ref={messagesContainerRef}>
                 {messages.map((message, index) => (
                   <div
                     key={index}
@@ -272,7 +272,7 @@ export default function AuditWindow({ params }: PageProps) {
                           <>
                             <AvatarFallback>U</AvatarFallback>
                             <AvatarImage
-                              src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cdefs%3E%3ClinearGradient id='grad1' x1='0%25' y1='0%25' x2='100%25' y2='100%25'%3E%3Cstop offset='0%25' style='stop-color:%23FFFFFF;stop-opacity:1' /%3E%3Cstop offset='40%25' style='stop-color:%23BBBBBB;stop-opacity:1' /%3E%3Cstop offset='100%25' style='stop-color:%23303030;stop-opacity:1' /%3E%3C/linearGradient%3E%3C/defs%3E%3Cpath fill='url(%23grad1)' d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E"
+                              src="data:image/svg+xml;charset=utf-8,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24'%3E%3Cpath fill='%23BBBBBB' d='M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z'/%3E%3C/svg%3E"
                             />
                           </>
                         ) : (
