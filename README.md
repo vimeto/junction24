@@ -1,7 +1,7 @@
-# log.it
-Log.it is an innovative tool designed to transform the way equipment inventories are conducted, automating the process through the power of AI. Here is how you can start auditing!
+# log.it📁
+Log.it is an innovative tool designed to transform the way equipment inventories are conducted, automating⚙️ the process through the power of AI🤖. Here is how you can start auditing!
 
-## Admin tool
+## Admin tool👔
 <img width="1188" alt="Screenshot 2024-11-10 at 1 44 40" src="https://github.com/user-attachments/assets/a9ba9d64-b7b2-4460-a5cb-b47c0df8d8be"><br/>
 Admin dashboard
 <br/>
@@ -26,10 +26,10 @@ Request audit form
 Here click on the request audit and fill in the auditor(s) name(s) and phone number(s), by pressing request audit a link is sent to the auditor(s).
 <br/>
 
-## Audit tool
+## Audit tool📋
 <img width="327" alt="Screenshot 2024-11-10 at 1 49 00" src="https://github.com/user-attachments/assets/10feb96a-935e-40b4-970a-d44e8a5594fd">
 <br/>
 Audit AI chat
 <br/>
 <br/>
-By clicking the link recieved by the auditor you are able to get to the auditing tool. Here you can start auditing by either speaking or typing to the AI assistant. You are also able to upload and take photos of audited equipment.
+By clicking the link recieved by the auditor you are able to get to the auditing tool. Here you can start auditing by either speaking🗣️ or typing📄 to the AI assistant. You are also able to upload🖼️ and take photos📷 of audited equipment.
