@@ -35,12 +35,13 @@ export default async function HomePage() {
       <div className="mx-auto max-w-[800px]">
         <div className="grid h-screen grid-cols-1 items-center justify-center gap-4 p-2 lg:grid-cols-2">
           <div className="flex h-full w-full items-end justify-center lg:items-center lg:justify-end lg:-mr-3">
-            <Link
+            <Link 
               href="/admin"
-              className="block h-full max-h-48 w-full max-w-48 sm:max-h-64 sm:max-w-64 cursor-pointer"
+              className="block group relative h-full max-h-48 w-full max-w-48 sm:max-h-64 sm:max-w-64 cursor-pointer"
             >
-              <Card className="h-full rounded-[20px] bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-2 shadow-2xl hover:bg-neutral-900">
-                <CardContent className="flex h-full flex-col items-center justify-center rounded-2xl bg-neutral-800">
+              <div className="absolute -inset-[1px] rounded-[20px] bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              <Card className="relative z-10 h-full rounded-[20px] bg-card transition-all duration-500 group-hover:border-transparent">
+                <CardContent className="flex h-full flex-col items-center justify-center rounded-2xl">
                   <div className="items-center justify-center rounded-2xl">
                     <h2 className="flex items-center justify-center pb-1 text-lg sm:text-2xl">
                       Admin demo
@@ -57,10 +58,11 @@ export default async function HomePage() {
           <div className="flex h-full w-full items-start justify-center lg:items-center lg:justify-start lg:-ml-3">
             <Link
               href="/audits/1"
-              className="block h-full max-h-48 w-full max-w-48 sm:max-h-64 sm:max-w-64 cursor-pointer"
+              className="block group relative h-full max-h-48 w-full max-w-48 sm:max-h-64 sm:max-w-64 cursor-pointer"
             >
-              <Card className="h-full rounded-[20px] bg-gradient-to-r from-purple-400 via-pink-500 to-red-500 p-2 shadow-2xl hover:bg-neutral-900">
-                <CardContent className="flex h-full flex-col items-center justify-center rounded-2xl bg-neutral-800">
+              <div className="absolute -inset-[1px] rounded-[20px] bg-gradient-to-r from-purple-400 via-pink-800 to-red-500 opacity-0 transition-opacity duration-500 group-hover:opacity-100" />
+              <Card className="relative z-10 h-full rounded-[20px] bg-card transition-all duration-500 group-hover:border-transparent">
+                <CardContent className="flex h-full flex-col items-center justify-center rounded-2xl">
                   <div className="items-center justify-center rounded-2xl">
                     <h2 className="flex items-center justify-center pb-1 text-lg sm:text-2xl">
                       Audit demo
