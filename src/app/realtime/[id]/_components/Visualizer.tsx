@@ -8,17 +8,42 @@ export function Visualizer({
   serverCanvasRef: React.RefObject<HTMLCanvasElement>;
 }) {
   return (
-    <Card>
-      <CardContent className="flex gap-4 p-4">
-        <div className="flex-1 h-24 relative">
-          <span className="absolute -top-6 left-2 text-sm text-muted-foreground">Input</span>
-          <canvas ref={clientCanvasRef} className="w-full h-full" />
+    <div className="relative h-10 w-full">
+      {/* Container for both visualizers */}
+      <div className="absolute inset-0 rounded-md overflow-hidden">
+        {/* Gradient background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-neutral-500/5 to-neutral-500/10" />
+
+        {/* Subtle grid pattern */}
+        <div className="absolute inset-0 bg-[linear-gradient(rgba(255,255,255,.03)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.03)_1px,transparent_1px)] bg-[size:16px_16px]" />
+
+        {/* Client visualization (back layer) */}
+        <div className="absolute inset-0">
+          <canvas
+            ref={clientCanvasRef}
+            className="w-full h-full [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
+            style={{
+              filter: 'drop-shadow(0 0 10px rgba(59, 130, 246, 0.2))',
+              opacity: 0.5
+            }}
+          />
         </div>
-        <div className="flex-1 h-24 relative">
-          <span className="absolute -top-6 left-2 text-sm text-muted-foreground">Output</span>
-          <canvas ref={serverCanvasRef} className="w-full h-full" />
+
+        {/* Server visualization (front layer) */}
+        <div className="absolute inset-0">
+          <canvas
+            ref={serverCanvasRef}
+            className="w-full h-full [mask-image:linear-gradient(to_right,transparent,black_10%,black_90%,transparent)]"
+            style={{
+              filter: 'drop-shadow(0 0 10px rgba(16, 185, 129, 0.2))',
+              opacity: 0.5
+            }}
+          />
         </div>
-      </CardContent>
-    </Card>
+
+        {/* Hover effect overlay */}
+        <div className="absolute inset-0 opacity-0 hover:opacity-100 transition-opacity duration-300 bg-white/[0.02]" />
+      </div>
+    </div>
   );
 }
