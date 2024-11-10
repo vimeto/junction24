@@ -272,34 +272,53 @@ export default function AuditWindow({ params }: PageProps) {
                         />
                       </Avatar>
                       <div
-                        className={`max-w-[80%] rounded-lg p-3 prose prose-invert ${message.role === "user" ? "bg-[#2a2a2c]" : "bg-[#323234]"}`}
+                        className={`min-w-[200px] max-w-[80%] rounded-lg p-3 prose prose-invert ${
+                          message.role === "user" ? "bg-[#2a2a2c]" : "bg-[#323234]"
+                        }`}
                       >
-                        {message.text && (
-                          <>
-                            <ReactMarkdown
-                              components={{
-                                p: ({ children }) => <p className="m-0">{children}</p>,
-                                pre: ({ children }) => <pre className="overflow-x-auto p-2 bg-[#1a1a1c] rounded">{children}</pre>,
-                                code: ({ children }) => <code className="bg-[#1a1a1c] px-1 rounded">{children}</code>,
-                              }}
-                            >
-                              {message.text}
-                            </ReactMarkdown>
-                            {message.isLoading && (
-                              <div className="animate-pulse mt-2">
-                                <div className="h-2 bg-gray-700 rounded w-16"></div>
-                              </div>
-                            )}
-                          </>
-                        )}
-                        {message.image && (
-                          <img
-                            src={message.image}
-                            alt="Uploaded"
-                            className="max-w-full rounded transition-opacity duration-300"
-                            loading="lazy"
-                          />
-                        )}
+                        <div className="overflow-hidden break-words hyphens-auto [hyphens:auto] [-webkit-hyphens:auto] [-ms-hyphens:auto]">
+                          {message.text && (
+                            <>
+                              <ReactMarkdown
+                                components={{
+                                  p: ({ children }) => {
+                                    const formattedText = children?.toString().replace(/:\s*(\S)/g, ': $1');
+                                    return (
+                                      <p className="m-0 whitespace-pre-wrap break-words overflow-wrap-anywhere leading-relaxed min-w-[180px] max-w-[65ch] hyphens-auto [hyphens:auto] [-webkit-hyphens:auto] [-ms-hyphens:auto]">
+                                        {formattedText}
+                                      </p>
+                                    );
+                                  },
+                                  pre: ({ children }) => (
+                                    <pre className="overflow-x-auto p-2 bg-[#1a1a1c] rounded whitespace-pre-wrap break-all min-w-[180px]">
+                                      {children}
+                                    </pre>
+                                  ),
+                                  code: ({ children }) => (
+                                    <code className="bg-[#1a1a1c] px-1 rounded break-all">
+                                      {children}
+                                    </code>
+                                  ),
+                                }}
+                              >
+                                {message.text}
+                              </ReactMarkdown>
+                              {message.isLoading && (
+                                <div className="animate-pulse mt-2">
+                                  <div className="h-2 bg-gray-700 rounded w-16"></div>
+                                </div>
+                              )}
+                            </>
+                          )}
+                          {message.image && (
+                            <img
+                              src={message.image}
+                              alt="Uploaded"
+                              className="max-w-full rounded transition-opacity duration-300"
+                              loading="lazy"
+                            />
+                          )}
+                        </div>
                       </div>
                     </div>
                   </div>
