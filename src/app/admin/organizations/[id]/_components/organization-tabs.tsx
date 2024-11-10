@@ -7,7 +7,7 @@ import { type OrganizationDetails, type LocationWithItems } from "~/server/queri
 import { LocationMap } from "./location-map";
 import { LocationItems } from "./location-items";
 import { OrganizationSettings } from "./organization-settings";
-import { ImageValidation } from "./image-validation";
+// import { ImageValidation } from "./image-validation";
 
 export function OrganizationTabs({
   organization,
@@ -37,9 +37,9 @@ export function OrganizationTabs({
         <OrganizationSettings organization={organization} />
       </TabsContent>
 
-      <TabsContent value="validate-images" className="space-y-4">
+      {/* <TabsContent value="validate-images" className="space-y-4">
         <ImageValidation />
-      </TabsContent>
+      </TabsContent> */}
     </Tabs>
   );
 }
