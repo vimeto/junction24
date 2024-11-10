@@ -207,20 +207,34 @@ export async function getLocationItems(organizationId: number): Promise<Location
     where: notInArray(items.id, allItemIds),
   });
 
-  const orgLocationsWithItems = orgLocations.map(location => ({
-    id: location.id,
-    name: location.name ?? "Unnamed Location",
-    organizationId: location.organizationId ?? 0,
-    items: location.itemAudits.map(audit => ({
-      id: audit.item?.id ?? 0,
-      identifier: audit.item?.identifier ?? "Unknown",
-      itemType: audit.item?.itemType ?? "item",
-      identifierType: audit.item?.identifierType ?? "serial",
-      requireImage: audit.item?.requireImage ?? false,
-      requireImageConfirmation: audit.item?.requireImageConfirmation ?? false,
-      lastAuditDate: audit.audit?.createdAt ?? null,
-    })),
-  }));
+  const orgLocationsWithItems = orgLocations.map(location => {
+    // Group audits by item ID and get the most recent one
+    const latestAudits = location.itemAudits.reduce((acc, audit) => {
+      if (!audit.item?.id) return acc;
+
+      const existingAudit = acc.get(audit.item.id);
+      if (!existingAudit || (audit.audit?.createdAt && existingAudit.audit?.createdAt &&
+          audit.audit.createdAt > existingAudit.audit.createdAt)) {
+        acc.set(audit.item.id, audit);
+      }
+      return acc;
+    }, new Map());
+
+    return {
+      id: location.id,
+      name: location.name ?? "Unnamed Location",
+      organizationId: location.organizationId ?? 0,
+      items: Array.from(latestAudits.values()).map(audit => ({
+        id: audit.item?.id ?? 0,
+        identifier: audit.item?.identifier ?? "Unknown",
+        itemType: audit.item?.itemType ?? "item",
+        identifierType: audit.item?.identifierType ?? "serial",
+        requireImage: audit.item?.requireImage ?? false,
+        requireImageConfirmation: audit.item?.requireImageConfirmation ?? false,
+        lastAuditDate: audit.audit?.createdAt ?? null,
+      })),
+    };
+  });
 
   return [
     ...orgLocationsWithItems,

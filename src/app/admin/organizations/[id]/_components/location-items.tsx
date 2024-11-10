@@ -54,7 +54,7 @@ export function LocationItems({
                 </TableHeader>
                 <TableBody>
                   {location.items.map((item) => (
-                    <TableRow key={item.id}>
+                    <TableRow key={`${location.id}-${item.id}`}>
                       <TableCell>
                         <div className="font-medium">{item.identifier}</div>
                         <div className="text-sm text-muted-foreground">
