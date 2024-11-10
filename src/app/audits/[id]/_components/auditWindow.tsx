@@ -246,6 +246,7 @@ export default function AuditWindow({ params }: PageProps) {
       }
     }
   }, [messages]);
+
   useEffect(() => {
     if (scrollAreaRef.current) {
       scrollAreaRef.current.scrollTop = scrollAreaRef.current.scrollHeight;
