@@ -10,11 +10,18 @@ import { env } from '~/env';
 import { Message } from '~/app/audits/[id]/_components/auditWindow';
 import { auditTool } from "~/app/api/chat/tools";
 
+type UpdatedItemType = ItemType & {
+  content?: {
+    type?: string;
+    transcript?: string;
+  }[];
+};
+
 const OPENAI_RELAY_SERVER_URL = env.NEXT_PUBLIC_OPENAI_RELAY_SERVER_URL;
 
 export function useConversation({ initialMessages }: { initialMessages: Message[] }) {
   const [isConnected, setIsConnected] = useState(false);
-  const [items, setItems] = useState<ItemType[]>([]);
+  const [items, setItems] = useState<UpdatedItemType[]>([]);
 
   const [realtimeEvents, setRealtimeEvents] = useState<RealtimeEvent[]>([]);
   const [expandedEvents, setExpandedEvents] = useState<{
@@ -40,7 +47,7 @@ export function useConversation({ initialMessages }: { initialMessages: Message[
 
     setIsConnected(true);
     setRealtimeEvents([]);
-    setItems(client.conversation.getItems());
+    setItems(client.conversation.getItems() as UpdatedItemType[]);
 
     await wavRecorder.begin();
     await wavStreamPlayer.connect();
@@ -141,12 +148,12 @@ export function useConversation({ initialMessages }: { initialMessages: Message[
 
     let messageHistory: InputTextContentType[] = []
     if (initialMessages.length > 0) {
-      const initialMessage = { type: `input_text` as const, text: `The following is the history of the previous conversations` }
+      const initialMessage = { type: `input_text` as const, text: `You are an auditor assistant for Kone. Your job is to help users audit items. You must return all text in markdown format, and always be as concise as possible!\n\nThe following is the history of the previous conversations` }
       const previousMessages = initialMessages.map((message) => ({
         type: `input_text` as const,
         text: `${message.role === "user" ? "User" : "Assistant"}: ${message.text}`
       }));
-      const finalMessage = { type: `input_text` as const, text: `That was it! If there was a question, please answer it, otherwise answer with a neutral greeting` }
+      const finalMessage = { type: `input_text` as const, text: `That was it! If there was a question, please answer it, otherwise answer with a neutral greeting.` }
       messageHistory = [initialMessage, ...previousMessages, finalMessage]
     }
     else {
@@ -181,7 +188,7 @@ export function useConversation({ initialMessages }: { initialMessages: Message[
     const client = clientRef.current;
     client.deleteItem(id);
     // Update items after deletion
-    setItems(client.conversation.getItems());
+    setItems(client.conversation.getItems() as UpdatedItemType[]);
   }, []);
 
   const toggleMute = useCallback(async () => {
@@ -209,6 +216,7 @@ export function useConversation({ initialMessages }: { initialMessages: Message[
 
     // Set up client configuration
     client.updateSession({ instructions: instructions });
+    client.updateSession({ voice: 'ash' });
     client.updateSession({ input_audio_transcription: { model: 'whisper-1' } });
     client.updateSession({ turn_detection: { type: 'server_vad' } });
 
@@ -248,7 +256,7 @@ export function useConversation({ initialMessages }: { initialMessages: Message[
         );
         item.formatted.file = wavFile;
       }
-      setItems(items);
+      setItems(items as UpdatedItemType[]);
     };
 
     // Add event listeners
@@ -257,7 +265,7 @@ export function useConversation({ initialMessages }: { initialMessages: Message[
     client.on('conversation.interrupted', handleInterrupted);
     client.on('conversation.updated', handleConversationUpdated);
 
-    setItems(client.conversation.getItems());
+    setItems(client.conversation.getItems() as UpdatedItemType[]);
 
     // Cleanup function
     return () => {

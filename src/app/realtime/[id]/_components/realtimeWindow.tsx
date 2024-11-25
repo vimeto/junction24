@@ -15,6 +15,7 @@ import { Card, CardContent, CardFooter } from "~/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "~/components/ui/avatar";
 import { ScrollArea } from "~/components/ui/scroll-area";
 import ReactMarkdown from 'react-markdown';
+import remarkGfm from 'remark-gfm';
 import { Mic, MicOff, Keyboard, Camera, X, MicOff as MicMuted } from 'lucide-react';
 import { Input } from "~/components/ui/input";
 
@@ -23,11 +24,41 @@ interface RealtimeWindowProps {
   initialMessages: Message[];
 }
 
+const ReactMarkdownComponent: React.FC<{ message: string | undefined }> = ({ message }) => {
+  if (!message) return null;
+
+  return (
+    <div className="overflow-x-auto">
+      <ReactMarkdown
+        remarkPlugins={[remarkGfm]}
+        components={{
+          p: ({ children }) => (
+            <p className="m-0 whitespace-pre-wrap break-words overflow-wrap-anywhere leading-relaxed max-w-[65ch] hyphens-auto [hyphens:auto] [-webkit-hyphens:auto] [-ms-hyphens:auto]">
+              {children}
+            </p>
+          ),
+          pre: ({ children }) => (
+            <pre className="overflow-x-auto p-2 bg-[#1a1a1c] rounded whitespace-pre-wrap break-all">
+              {children}
+            </pre>
+          ),
+          code: ({ children }) => (
+            <code className="bg-[#1a1a1c] px-1 rounded break-all">{children}</code>
+          ),
+        }}
+      >
+        {message}
+      </ReactMarkdown>
+    </div>
+  );
+};
+
 export default function RealtimeWindow({ id, initialMessages }: RealtimeWindowProps) {
   const clientCanvasRef = useRef<HTMLCanvasElement>(null);
   const serverCanvasRef = useRef<HTMLCanvasElement>(null);
   const eventsScrollHeightRef = useRef(0);
   const eventsScrollRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
   const startTimeRef = useRef<string>(new Date().toISOString());
   const [showCamera, setShowCamera] = useState(false);
   const [isKeyboardMode, setIsKeyboardMode] = useState(false);
@@ -129,32 +160,22 @@ export default function RealtimeWindow({ id, initialMessages }: RealtimeWindowPr
     };
   }, [isConnected]);
 
-  /**
-   * Auto-scroll the event logs
-   */
   useEffect(() => {
-    if (eventsScrollRef.current) {
-      const eventsEl = eventsScrollRef.current;
-      const scrollHeight = eventsEl.scrollHeight;
-      // Only scroll if height has just changed
-      if (scrollHeight !== eventsScrollHeightRef.current) {
-        eventsEl.scrollTop = scrollHeight;
-        eventsScrollHeightRef.current = scrollHeight;
+    const scrollToBottom = () => {
+      const viewport = document.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTo({
+          top: viewport.scrollHeight,
+          behavior: 'smooth'
+        });
+      } else {
+        console.error("Could not find viewport element");
       }
-    }
-  }, [realtimeEvents]);
+    };
 
-  /**
-   * Auto-scroll the conversation logs
-   */
-  useEffect(() => {
-    const conversationEls = [].slice.call(
-      document.body.querySelectorAll('[data-conversation-content]')
-    );
-    for (const el of conversationEls) {
-      const conversationEl = el as HTMLDivElement;
-      conversationEl.scrollTop = conversationEl.scrollHeight;
-    }
+    // Add a small delay to ensure content is rendered
+    const timeoutId = setTimeout(scrollToBottom, 100);
+    return () => clearTimeout(timeoutId);
   }, [items]);
 
   const handleTextSubmit = async (e: React.FormEvent) => {
@@ -180,7 +201,7 @@ export default function RealtimeWindow({ id, initialMessages }: RealtimeWindowPr
         <Card className="z-0 flex h-full w-full flex-col border-gray-800 bg-[#1a1a1c] text-gray-200">
           <CardContent className="flex-1 overflow-hidden p-0">
             <ScrollArea className="h-full">
-              <div className="space-y-4 p-4">
+              <div className="space-y-4 p-4" ref={scrollAreaRef}>
                 {items.slice(1).map((item) => (
                   <div
                     key={item.id}
@@ -189,15 +210,15 @@ export default function RealtimeWindow({ id, initialMessages }: RealtimeWindowPr
                     <div
                       className={`flex items-end space-x-2 ${item.role === "user" ? "flex-row-reverse space-x-reverse" : "flex-row"}`}
                     >
-                      <Avatar className="h-8 w-8">
+                      <Avatar className="h-8 w-8 rounded-full">
                         <AvatarFallback>
                           {item.role === "user" ? "U" : "A"}
                         </AvatarFallback>
                         <AvatarImage
                           src={
                             item.role === "user"
-                              ? "https://api.dicebear.com/7.x/avataaars/svg?seed=user"
-                              : "https://api.dicebear.com/7.x/bottts/svg?seed=ai"
+                              ? "https://uploads.commoninja.com/searchengine/wordpress/user-avatar-reloaded.png"
+                              : "https://st5.depositphotos.com/72897924/62255/v/450/depositphotos_622556394-stock-illustration-robot-web-icon-vector-illustration.jpg"
                           }
                         />
                       </Avatar>
@@ -206,7 +227,7 @@ export default function RealtimeWindow({ id, initialMessages }: RealtimeWindowPr
                         >
                         {/* Tool response */}
                         {item.type === 'function_call_output' && (
-                          <div className="text-sm">{item.formatted.output}</div>
+                          <ReactMarkdownComponent message={item.formatted.output} />
                         )}
 
                         {/* Tool call */}
@@ -219,20 +240,24 @@ export default function RealtimeWindow({ id, initialMessages }: RealtimeWindowPr
                         {/* User message */}
                         {!item.formatted.tool && item.role === 'user' && (
                           <div className="text-sm">
-                            {item.formatted.transcript ||
-                              (item.formatted.audio?.length
-                                ? '(awaiting transcript)'
-                                : item.formatted.text ||
-                                  '(item sent)')}
+                            <ReactMarkdownComponent message={item.formatted.transcript ||
+                                (item.formatted.audio?.length
+                                  ? '(awaiting transcript)'
+                                  : item.formatted.text ||
+                                    '(item sent)')
+                              }
+                            />
                           </div>
                         )}
 
                         {/* Assistant message */}
                         {!item.formatted.tool && item.role === 'assistant' && (
                           <div className="text-sm">
-                            {item.formatted.transcript ||
+                            <ReactMarkdownComponent message={item.formatted.transcript ||
                               item.formatted.text ||
+                              (item.content && item.content[0]?.transcript) ||
                               '(truncated)'}
+                            />
                           </div>
                         )}
                       </div>
